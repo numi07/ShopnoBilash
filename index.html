@@ -21,7 +21,6 @@
         .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 80px; opacity: 0.03; font-weight: bold; white-space: nowrap; pointer-events: none; z-index: 0; }
         .relative-z { position: relative; z-index: 10; }
         
-        /* 100% Perfect PDF Rendering via Native Print */
         @media print {
             body * { visibility: hidden; }
             .print-area, .print-area * { visibility: visible; }
@@ -34,7 +33,6 @@
 </head>
 <body class="flex flex-col md:flex-row min-h-screen">
 
-<!-- Auth Overlay -->
 <div id="authOverlay" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center p-4 sm:p-6">
     <div id="loadingText" class="text-white text-lg md:text-2xl font-bold hidden mb-6 animate-pulse text-center">ডাটা লোড হচ্ছে, দয়া করে অপেক্ষা করুন...</div>
     <div id="choiceBox" class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
@@ -66,7 +64,6 @@
     </div>
 </div>
 
-<!-- Direct Invoice View (WhatsApp Link) -->
 <div id="directInvoiceView" class="hidden min-h-screen w-full bg-slate-100 p-4 flex-col items-center z-[200] fixed inset-0 overflow-y-auto">
     <div class="w-full max-w-4xl flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 mt-2">
         <h2 class="text-lg md:text-xl font-bold text-slate-700"><i class="fas fa-file-invoice mr-2 text-blue-500"></i>অনলাইন ইনভয়েস</h2>
@@ -75,7 +72,6 @@
     <div id="directInvoiceContainer" class="w-full max-w-4xl"></div>
 </div>
 
-<!-- Sidebar -->
 <aside class="sidebar w-full md:w-[280px] md:h-screen sticky top-0 flex flex-col hidden z-40 shadow-xl md:shadow-none" id="adminSidebar">
     <div class="p-4 md:p-8 text-center border-b border-slate-700 flex justify-between md:block items-center">
         <h1 class="text-xl md:text-2xl font-bold text-white uppercase">স্বপ্নবিলাস</h1>
@@ -96,10 +92,9 @@
     </div>
 </aside>
 
-<!-- Main Content -->
+
 <main class="flex-1 p-4 md:p-10 hidden w-full overflow-x-hidden" id="mainContent">
     
-    <!-- Top Bar with Logout (Desktop & Mobile) -->
     <div class="flex justify-between items-center bg-white p-4 mb-6 shadow-sm rounded-2xl border border-slate-100">
         <div>
             <h2 class="text-xl font-bold text-slate-800 hidden sm:block">অ্যাডমিন প্যানেল</h2>
@@ -108,7 +103,6 @@
         <button onclick="logout()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-500 hover:text-white transition"><i class="fas fa-sign-out-alt mr-2"></i>লগআউট</button>
     </div>
 
-    <!-- Global Summary (Mobile Responsive Grid) -->
     <div id="globalFundSummary" class="bg-blue-800 text-white p-5 rounded-2xl mb-8 flex flex-col xl:flex-row justify-between items-center shadow-lg">
         <div class="text-center xl:text-left mb-4 xl:mb-0 w-full xl:w-auto">
             <p class="text-blue-200 text-xs md:text-sm font-bold">রিপোর্টের মোট ইনকাম - (খরচ + লোন + ব্যাংকে জমা)</p>
@@ -122,7 +116,6 @@
         </div>
     </div>
 
-    <!-- Dash Section -->
     <section id="dashSec" class="page-content">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 md:mb-8 gap-4">
             <h2 class="text-2xl md:text-3xl font-bold text-slate-800">ড্যাশবোর্ড ওভারভিউ</h2>
@@ -131,7 +124,6 @@
         <div id="flatGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"></div>
     </section>
 
-    <!-- Entry Section -->
     <section id="entrySec" class="page-content hidden">
         <div class="max-w-4xl mx-auto bg-white p-5 md:p-8 rounded-2xl shadow-lg admin-only mb-6">
             <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3 sm:gap-0">
@@ -162,7 +154,6 @@
         </div>
     </section>
 
-    <!-- Invoice Section -->
     <section id="invoiceSec" class="page-content hidden">
         <div class="max-w-xl mx-auto bg-white p-5 md:p-8 rounded-2xl shadow-lg admin-only">
             <h2 class="text-xl md:text-2xl font-bold mb-6">ইনভয়েস তৈরি</h2>
@@ -189,10 +180,8 @@
         </div>
     </section>
 
-    <!-- Loan Section -->
     <section id="loanSec" class="page-content hidden">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-8 admin-only">
-            <!-- Loan Entry Form -->
             <div class="bg-white p-5 md:p-8 rounded-2xl shadow-lg border h-max relative">
                 <h2 class="text-lg md:text-xl font-bold mb-6 text-orange-600">নতুন লোন এন্ট্রি / এডিট</h2>
                 <input type="hidden" id="lId">
@@ -205,7 +194,7 @@
                     <button onclick="resetLoanForm()" class="bg-slate-200 text-slate-600 px-4 rounded-xl font-bold" title="ক্লিয়ার করুন"><i class="fas fa-times"></i></button>
                 </div>
             </div>
-            <!-- Loan Return Form -->
+
             <div class="bg-white p-5 md:p-8 rounded-2xl shadow-lg border h-max border-green-200">
                 <h2 class="text-lg md:text-xl font-bold mb-6 text-green-600">লোন ফেরত এন্ট্রি / এডিট</h2>
                 <input type="hidden" id="lrId">
@@ -226,7 +215,6 @@
         <div id="loanList" class="grid grid-cols-1 xl:grid-cols-2 gap-4"></div>
     </section>
 
-    <!-- Expense Section -->
     <section id="expenseSec" class="page-content hidden">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
             <div class="bg-white p-5 md:p-8 rounded-2xl shadow-lg border col-span-1 h-max admin-only">
@@ -243,7 +231,6 @@
         </div>
     </section>
 
-    <!-- Bank Section -->
     <section id="bankSec" class="page-content hidden">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
             <div class="bg-white p-5 md:p-8 rounded-2xl shadow-lg border col-span-1 h-max admin-only">
@@ -262,14 +249,12 @@
         </div>
     </section>
 
-    <!-- Report Section -->
     <section id="reportSec" class="page-content hidden">
         <div id="headSummary" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6 md:mb-8 text-sm"></div>
         <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm overflow-x-auto" id="reportContent"></div>
     </section>
 </main>
 
-<!-- User Portal View -->
 <div id="userView" class="hidden min-h-screen p-4 sm:p-6 w-full max-w-4xl mx-auto flex-col bg-slate-50">
     <div class="flex justify-between items-center mb-6 md:mb-8 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-blue-100">
         <div>
@@ -281,7 +266,6 @@
     <div id="userInvoiceList" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
 </div>
 
-<!-- History Modal -->
 <div id="historyModal" class="fixed inset-0 bg-black bg-opacity-50 z-[200] hidden flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-lg rounded-2xl p-5 md:p-6 shadow-2xl">
         <div class="flex justify-between items-center border-b pb-3 mb-4">
@@ -313,8 +297,7 @@
     
     function logout() { window.location.href = window.location.pathname; }
 
-    // Direct WhatsApp Link Check on Load
-    // URL Format: ?v=Base64Token
+
     window.onload = async () => {
         const params = new URLSearchParams(window.location.search);
         const token = params.get('v');
@@ -327,7 +310,6 @@
             document.getElementById('loadingText').classList.add('hidden');
             
             try {
-                // Decode token (Format: tId|month|year)
                 const decodedStr = decodeURIComponent(atob(token));
                 const parts = decodedStr.split('|');
                 const tIdParam = parts[0];
@@ -423,7 +405,6 @@
         document.getElementById('fBank').innerText = toBanglaWord(totalBank); renderLoans();
     }
 
-    // --- Tenants ---
     function handleFlatSelection(flat) { showFlatStatusInForm(flat); renderTenantsByFlat(flat); }
     function renderTenantsByFlat(flat) {
         const listDiv = document.getElementById('allTenantList'); const header = document.getElementById('listHeader');
@@ -451,7 +432,6 @@
     function filterHistory() { const val = document.getElementById('histFilter').value.toLowerCase(); document.querySelectorAll('.hist-item').forEach(item => { item.style.display = item.innerText.toLowerCase().includes(val) ? "block" : "none"; }); }
     function closeModal() { document.getElementById('historyModal').classList.add('hidden'); }
 
-    // --- Dashboard & Invoice Gen ---
     function renderDashboard() {
         let html = ''; let activeCount = 0;
         FLATS_LIST.forEach(f => {
@@ -479,7 +459,6 @@
         
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveInvoice", tId: t[0], month, year: year, rent: document.getElementById('invRent').value, elec: document.getElementById('invElec').value||0, water: document.getElementById('invWater').value||0, service: document.getElementById('invService').value||0, adv: document.getElementById('invAdv').value||0, due: document.getElementById('invDue').value||0, total})});
         
-        // Generate Secure Base64 Link
         const rawString = `${t[0]}|${month}|${year}`;
         const safeToken = btoa(encodeURIComponent(rawString));
         
@@ -491,7 +470,6 @@
         fetchData(); switchTab('report');
     }
 
-    // --- Loans Section ---
     async function saveLoan() {
         const id = document.getElementById('lId').value || "L-" + Date.now();
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveLoan", id: id, person: document.getElementById('lPerson').value, amount: document.getElementById('lAmount').value, reason: document.getElementById('lReason').value, date: document.getElementById('lDate').value}) });
@@ -565,7 +543,6 @@
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "returnLoan", id: id, rAmount: retAmt, rDate: document.getElementById('lrDate').value}) }); alert("ফেরত এন্ট্রি সম্পন্ন!"); resetLoanReturnForm(); fetchData();
     }
 
-    // --- Expenses ---
     async function saveExpense() { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveExpense", reason: document.getElementById('exReason').value, amount: document.getElementById('exAmount').value, date: document.getElementById('exDate').value}) }); alert("খরচ সেভ হয়েছে!"); document.getElementById('exReason').value=''; fetchData(); }
     function renderExpenses() {
         if(allExpenses.length < 2) return; let html = '';
@@ -573,7 +550,6 @@
         document.getElementById('expenseList').innerHTML = html;
     }
 
-    // --- Bank Deposits Tracking ---
     async function saveBank() { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveBank", bankName: document.getElementById('bBankName').value, accName: document.getElementById('bAccName').value, accNo: document.getElementById('bAccNo').value, amount: document.getElementById('bAmount').value, date: document.getElementById('bDate').value}) }); alert("ব্যাংকে জমা সেভ হয়েছে!"); document.getElementById('bAmount').value=''; fetchData(); }
     function renderBanks() {
         if(allBanks.length < 2) return; let html = '';
@@ -595,7 +571,6 @@
         updateFundCalculation();
     }
 
-    // --- User Portal & Beautiful Invoice ---
     function renderUserInvoices(user) {
         let html = '';
         const userInvs = allInvoices.filter(inv => inv[1] === user[0]).reverse();
@@ -681,7 +656,15 @@
                     <p class="text-center text-xs text-red-500 mt-6 font-bold relative-z">* অনুগ্রহ করে বিল পরিশোধের পর মেসেজ বা কল দিয়ে কনফার্ম করবেন।</p>
                 </div>
             </div>
-            <button onclick="downloadBeautifulPDF('printArea_${containerId}')" class="mt-6 bg-slate-800 hover:bg-slate-900 transition text-white px-8 py-4 rounded-xl font-bold no-print w-full flex justify-center items-center gap-2 text-lg shadow-lg"><i class="fas fa-print"></i> ইনভয়েস প্রিন্ট / পিডিএফ সেভ করুন</button>
+            <div class="flex flex-col sm:flex-row gap-3 mt-6 no-print">
+        <button onclick="downloadBeautifulPDF('printArea_${containerId}')" class="flex-1 bg-slate-800 text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2 text-lg">
+            <i class="fas fa-print"></i> ইনভয়েস প্রিন্ট / পিডিএফ
+        </button>        
+        <button onclick="closeInvoiceView()" class="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2 text-lg shadow-lg">
+            <i class="fas fa-arrow-left"></i> তালিকায় ফিরে যান
+        </button>
+    </div>
+        
         `;
     }
 
@@ -697,6 +680,12 @@
         document.getElementById(tab + 'Sec').classList.remove('hidden'); document.getElementById('tab-' + tab).classList.add('active'); document.getElementById('invoicePDF').classList.add('hidden');
         if(tab !== 'entry') resetTenantForm();
     }
+
+    function closeInvoiceView() {
+    document.getElementById('directInvoiceView').classList.add('hidden');
+    document.getElementById('userView').classList.remove('hidden');
+    document.getElementById('userView').classList.add('flex');
+}
 </script>
 </body>
 </html>
