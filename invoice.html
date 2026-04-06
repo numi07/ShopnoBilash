@@ -176,11 +176,28 @@
             <form onsubmit="saveInvoice(event)" class="space-y-4">
                 <select id="invTenant" required class="w-full p-3 border rounded-xl"></select>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <select id="invMonth" class="p-3 border rounded-xl outline-none w-full">
-                        <option>জানুয়ারি</option><option>ফেব্রুয়ারি</option><option>মার্চ</option><option>এপ্রিল</option><option>মে</option><option>জুন</option><option>জুলাই</option><option>আগস্ট</option><option>সেপ্টেম্বর</option><option>অক্টোবর</option><option>নভেম্বর</option><option>ডিসেম্বর</option>
+                    <select id="invMonth" class="p-3 border rounded-xl outline-none w-full bg-white focus:ring-2 focus:ring-blue-500">
+                        <option value="0">জানুয়ারি</option>
+                        <option value="1">ফেব্রুয়ারি</option>
+                        <option value="2">মার্চ</option>
+                        <option value="3">এপ্রিল</option>
+                        <option value="4">মে</option>
+                        <option value="5">জুন</option>
+                        <option value="6">জুলাই</option>
+                        <option value="7">আগস্ট</option>
+                        <option value="8">সেপ্টেম্বর</option>
+                        <option value="9">অক্টোবর</option>
+                        <option value="10">নভেম্বর</option>
+                        <option value="11">ডিসেম্বর</option>
                     </select>
-                    <select id="invYear" class="p-3 border rounded-xl w-full">
-                        <option>২০২৪</option><option>২০২৫</option><option selected>২০২৬</option><option selected>২০২৭</option>
+                    <select id="invYear" class="p-3 border rounded-xl w-full outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="2024">২০২৪</option>
+                        <option value="2025">২০২৫</option>
+                        <option value="2026">২০২৬</option>
+                        <option value="2027">২০২৭</option>
+                        <option value="2028">২০২৮</option>
+                        <option value="2029">২০২৯</option>
+                        <option value="2030">২০৩০</option>
                     </select>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -708,7 +725,16 @@
             document.getElementById('userView').classList.add('flex');
         }
     }
-
+    window.onload = function() {
+    const selectEl = document.getElementById('invMonth');
+    const currentDate = new Date();
+    let currentMonth = currentDate.getMonth();
+    let previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    selectEl.value = previousMonth;
+    const currentYear = new Date().getFullYear();
+    const yearSelect = document.getElementById('invYear');
+    yearSelect.value = currentYear;
+  };
     function renderBeautifulInvoice(inv, user, containerId, r=4, e=5, w=6, s=7, a=8, d=9, t=10) {
         const container = document.getElementById(containerId);
         container.innerHTML = `
