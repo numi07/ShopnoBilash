@@ -1,0 +1,25 @@
+name: Minify HTML
+on:
+  push:
+    branches:
+      - main # আপনার ব্রাঞ্চের নাম যদি অন্য কিছু হয় তবে তা দিন
+
+jobs:
+  minify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Minify HTML files
+        run: |
+          npm install -g html-minifier
+          find . -name "*.html" -exec sh -c 'html-minifier --collapse-whitespace --remove-comments --minify-js true --minify-css true "$1" -o "$1"' _ {} \;
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Automated HTML Minification" || exit 0
+          git push
