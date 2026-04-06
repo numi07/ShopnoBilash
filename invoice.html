@@ -14,25 +14,23 @@
         .nav-btn:hover, .nav-btn.active { background: #334155; color: #fff; border-left: 4px solid #3b82f6; }
         .hidden { display: none !important; }
         
-        .pdf-wrapper { overflow-x: auto; max-width: 100%; }
-        .invoice-print-area { min-width: 750px; background: white; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); position: relative; margin: 0 auto; }
+        .pdf-wrapper { overflow-x: auto; max-width: 100%; width: 100%; }
+        .invoice-print-area { width: 100%; max-width: 800px; background: white; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); position: relative; margin: 0 auto; border-radius: 1rem; overflow: hidden; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 80px; opacity: 0.03; font-weight: bold; white-space: nowrap; pointer-events: none; z-index: 0; }
+        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: clamp(40px, 8vw, 80px); opacity: 0.03; font-weight: bold; white-space: nowrap; pointer-events: none; z-index: 0; }
         .relative-z { position: relative; z-index: 10; }
         
-        /* 100% Perfect PDF Rendering via Native Print */
         @media print {
             body * { visibility: hidden !important; }
             .print-area, .print-area * { visibility: visible !important; }
-            .print-area { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+            .print-area { position: absolute; left: 0; top: 0; width: 100%; min-width: 800px !important; box-shadow: none !important; border: none !important; padding: 30px !important; margin: 0 !important; border-radius: 0 !important; }
             .no-print { display: none !important; }
             @page { size: A4 portrait; margin: 10mm; }
         }
-        @media (min-width: 768px) { .invoice-print-area { padding: 50px; } }
+        @media (min-width: 768px) { .invoice-print-area { padding: 40px; } }
     </style>
     
-    <!-- URL চেকিং স্ক্রিপ্ট (যেন লগইন বক্স এক সেকেন্ডের জন্যও না দেখায়) -->
     <script>
         if(window.location.search.includes('?t=')) {
             document.write('<style>#choiceBox { display: none !important; } #loadingText { display: block !important; }</style>');
@@ -41,7 +39,6 @@
 </head>
 <body class="flex flex-col md:flex-row min-h-screen">
 
-<!-- Auth Overlay -->
 <div id="authOverlay" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center p-4 sm:p-6">
     <div id="loadingText" class="text-white text-lg md:text-2xl font-bold hidden mb-6 animate-pulse text-center">ডাটা লোড হচ্ছে, দয়া করে অপেক্ষা করুন...</div>
     <div id="choiceBox" class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
@@ -53,7 +50,6 @@
         </div>
     </div>
     
-    <!-- Admin Login -->
     <div id="adminLoginForm" class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md hidden text-center">
         <h2 class="text-xl sm:text-2xl font-bold mb-6">অ্যাডমিন পিন দিন</h2>
         <input type="password" id="adminPin" onkeyup="if(event.key==='Enter') authLogin('admin')" class="w-full p-3 sm:p-4 border rounded-xl mb-4 text-center text-xl sm:text-2xl outline-none">
@@ -61,7 +57,6 @@
         <button onclick="showLogin('choice')" class="mt-4 text-sm text-slate-500">পিছনে যান</button>
     </div>
     
-    <!-- Manager Login -->
     <div id="managerLoginForm" class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md hidden text-center">
         <h2 class="text-xl sm:text-2xl font-bold mb-6 text-orange-600">ব্যবস্থাপক পিন দিন</h2>
         <input type="password" id="managerPin" onkeyup="if(event.key==='Enter') authLogin('manager')" class="w-full p-3 sm:p-4 border rounded-xl mb-4 text-center text-xl sm:text-2xl outline-none border-orange-200 focus:border-orange-500">
@@ -69,7 +64,6 @@
         <button onclick="showLogin('choice')" class="mt-4 text-sm text-slate-500">পিছনে যান</button>
     </div>
     
-    <!-- User Login -->
     <div id="userLoginForm" class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md hidden text-center">
         <h2 class="text-xl sm:text-2xl font-bold mb-6">ভাড়াটিয়া লগইন</h2>
         <input type="text" id="userPhone" placeholder="মোবাইল নম্বর" class="w-full p-3 sm:p-4 border rounded-xl mb-4 outline-none">
@@ -79,14 +73,12 @@
     </div>
 </div>
 
-<!-- Direct Invoice View (WhatsApp Link) -->
-<div id="directInvoiceView" class="hidden min-h-screen w-full bg-slate-100 p-4 flex-col items-center z-[200] fixed inset-0 overflow-y-auto">
-    <div class="w-full max-w-4xl flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 mt-2">
+<div id="directInvoiceView" class="hidden min-h-screen w-full bg-slate-100 p-2 sm:p-4 flex-col items-center z-[200] fixed inset-0 overflow-y-auto">
+    <div class="w-full max-w-4xl flex justify-between items-center mb-4 sm:mb-6 bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-slate-200 mt-2">
         <h2 class="text-lg md:text-xl font-bold text-slate-700"><i class="fas fa-file-invoice mr-2 text-blue-500"></i>অনলাইন ইনভয়েস</h2>
-        <button onclick="logout()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-500 hover:text-white transition"><i class="fas fa-home mr-2"></i>হোমপেজ / লগআউট</button>
+        <button onclick="closeInvoiceView()" class="bg-red-50 text-red-600 border border-red-200 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold hover:bg-red-500 hover:text-white transition"><i class="fas fa-arrow-left mr-2"></i>ফিরে যান</button>
     </div>
     
-    <!-- Retry Container if Not Found -->
     <div id="invoiceNotFoundContainer" class="hidden bg-white p-10 rounded-2xl shadow-xl w-full max-w-md text-center mx-auto mt-10">
         <i class="fas fa-exclamation-triangle text-4xl text-orange-500 mb-4"></i>
         <h2 class="text-xl font-bold text-slate-800 mb-2">ইনভয়েস লোড হচ্ছে...</h2>
@@ -97,7 +89,6 @@
     <div id="directInvoiceContainer" class="w-full max-w-4xl pb-10"></div>
 </div>
 
-<!-- Admin/Manager Sidebar -->
 <aside class="sidebar w-full md:w-[280px] md:h-screen sticky top-0 flex flex-col hidden z-40 shadow-xl md:shadow-none" id="adminSidebar">
     <div class="p-4 md:p-8 text-center border-b border-slate-700 flex justify-between md:block items-center">
         <h1 class="text-xl md:text-2xl font-bold text-white uppercase">স্বপ্নবিলাস</h1>
@@ -118,10 +109,8 @@
     </div>
 </aside>
 
-<!-- Admin Main Content -->
 <main class="flex-1 p-4 md:p-10 hidden w-full overflow-x-hidden" id="mainContent">
     
-    <!-- Top Bar with Logout (Mobile & Desktop) -->
     <div class="flex justify-between items-center bg-white p-4 mb-6 shadow-sm rounded-2xl border border-slate-100">
         <div>
             <h2 class="text-xl font-bold text-slate-800 hidden sm:block">অ্যাডমিন প্যানেল</h2>
@@ -130,7 +119,6 @@
         <button onclick="logout()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-500 hover:text-white transition"><i class="fas fa-sign-out-alt mr-2"></i>লগআউট</button>
     </div>
 
-    <!-- Global Summary (Mobile Responsive Grid) -->
     <div id="globalFundSummary" class="bg-blue-800 text-white p-5 rounded-2xl mb-8 flex flex-col xl:flex-row justify-between items-center shadow-lg">
         <div class="text-center xl:text-left mb-4 xl:mb-0 w-full xl:w-auto">
             <p class="text-blue-200 text-xs md:text-sm font-bold">রিপোর্টের মোট ইনকাম (শুধুমাত্র ভাড়া) - (খরচ + লোন + ব্যাংকে জমা)</p>
@@ -192,7 +180,7 @@
                         <option>জানুয়ারি</option><option>ফেব্রুয়ারি</option><option>মার্চ</option><option>এপ্রিল</option><option>মে</option><option>জুন</option><option>জুলাই</option><option>আগস্ট</option><option>সেপ্টেম্বর</option><option>অক্টোবর</option><option>নভেম্বর</option><option>ডিসেম্বর</option>
                     </select>
                     <select id="invYear" class="p-3 border rounded-xl w-full">
-                        <option>২০২৪</option><option>২০২৫</option><option selected>২০২৬</option>
+                        <option>২০২৪</option><option>২০২৫</option><option selected>২০২৬</option><option selected>২০২৭</option>
                     </select>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -210,7 +198,6 @@
 
     <section id="loanSec" class="page-content hidden">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-8 admin-only">
-            <!-- Loan Entry -->
             <div class="bg-white p-5 md:p-8 rounded-2xl shadow-lg border h-max relative">
                 <h2 class="text-lg md:text-xl font-bold mb-6 text-orange-600">নতুন লোন এন্ট্রি / এডিট</h2>
                 <input type="hidden" id="lId">
@@ -224,7 +211,6 @@
                 </div>
             </div>
             
-            <!-- Loan Return -->
             <div class="bg-white p-5 md:p-8 rounded-2xl shadow-lg border h-max border-green-200">
                 <h2 class="text-lg md:text-xl font-bold mb-6 text-green-600">লোন ফেরত এন্ট্রি / এডিট</h2>
                 <input type="hidden" id="lrId">
@@ -248,11 +234,15 @@
     <section id="expenseSec" class="page-content hidden">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
             <div class="bg-white p-5 md:p-8 rounded-2xl shadow-lg border col-span-1 h-max admin-only">
-                <h2 class="text-lg md:text-xl font-bold mb-6 text-red-600">খরচ এন্ট্রি</h2>
+                <h2 class="text-lg md:text-xl font-bold mb-6 text-red-600">খরচ এন্ট্রি / এডিট</h2>
+                <input type="hidden" id="eId">
                 <input type="text" id="exReason" placeholder="বিবরণ (যেমন: দারোয়ানের বেতন)" class="w-full p-3 border mb-3 rounded-xl bg-red-50">
                 <input type="number" id="exAmount" placeholder="টাকার পরিমাণ" class="w-full p-3 border mb-3 rounded-xl bg-red-50">
                 <input type="date" id="exDate" class="w-full p-3 border mb-6 rounded-xl text-slate-500 bg-red-50">
-                <button onclick="saveExpense()" class="w-full bg-red-600 text-white py-3 md:py-4 rounded-xl font-bold">খরচ সেভ করুন</button>
+                <div class="flex gap-2">
+                    <button id="btnSaveExpense" onclick="saveExpense()" class="w-full bg-red-600 text-white py-3 md:py-4 rounded-xl font-bold">খরচ সেভ করুন</button>
+                    <button type="button" onclick="resetExpenseForm()" class="bg-slate-200 text-slate-600 px-4 rounded-xl font-bold" title="ক্লিয়ার করুন"><i class="fas fa-times"></i></button>
+                </div>
             </div>
             <div class="col-span-1 lg:col-span-2">
                 <h3 class="font-bold text-lg mb-4 border-b pb-2">খরচের তালিকা</h3>
@@ -264,13 +254,17 @@
     <section id="bankSec" class="page-content hidden">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
             <div class="bg-white p-5 md:p-8 rounded-2xl shadow-lg border col-span-1 h-max admin-only">
-                <h2 class="text-lg md:text-xl font-bold mb-6 text-indigo-600">ব্যাংকে জমা এন্ট্রি</h2>
+                <h2 class="text-lg md:text-xl font-bold mb-6 text-indigo-600">ব্যাংকে জমা এন্ট্রি / এডিট</h2>
+                <input type="hidden" id="bkId">
                 <input type="text" id="bBankName" placeholder="ব্যাংকের নাম (যেমন: ডাচ-বাংলা)" class="w-full p-3 border mb-3 rounded-xl bg-indigo-50">
                 <input type="text" id="bAccName" placeholder="একাউন্ট এর নাম" class="w-full p-3 border mb-3 rounded-xl bg-indigo-50">
                 <input type="text" id="bAccNo" placeholder="একাউন্ট নাম্বার" class="w-full p-3 border mb-3 rounded-xl bg-indigo-50">
                 <input type="number" id="bAmount" placeholder="জমার পরিমাণ" class="w-full p-3 border mb-3 rounded-xl bg-indigo-50">
                 <input type="date" id="bDate" class="w-full p-3 border mb-6 rounded-xl text-slate-500 bg-indigo-50">
-                <button onclick="saveBank()" class="w-full bg-indigo-600 text-white py-3 md:py-4 rounded-xl font-bold">ব্যাংকে জমা সেভ করুন</button>
+                <div class="flex gap-2">
+                    <button id="btnSaveBank" onclick="saveBank()" class="w-full bg-indigo-600 text-white py-3 md:py-4 rounded-xl font-bold">ব্যাংকে জমা সেভ করুন</button>
+                    <button type="button" onclick="resetBankForm()" class="bg-slate-200 text-slate-600 px-4 rounded-xl font-bold" title="ক্লিয়ার করুন"><i class="fas fa-times"></i></button>
+                </div>
             </div>
             <div class="col-span-1 lg:col-span-2">
                 <h3 class="font-bold text-lg mb-4 border-b pb-2">ব্যাংকে জমার ট্র্যাকিং</h3>
@@ -285,7 +279,6 @@
     </section>
 </main>
 
-<!-- User Portal View (Tenant sees all invoices) -->
 <div id="userView" class="hidden min-h-screen p-4 sm:p-6 w-full max-w-4xl mx-auto flex-col bg-slate-50">
     <div class="flex justify-between items-center mb-6 md:mb-8 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-blue-100">
         <div>
@@ -297,7 +290,6 @@
     <div id="userInvoiceList" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
 </div>
 
-<!-- History Modal -->
 <div id="historyModal" class="fixed inset-0 bg-black bg-opacity-50 z-[200] hidden flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-lg rounded-2xl p-5 md:p-6 shadow-2xl">
         <div class="flex justify-between items-center border-b pb-3 mb-4">
@@ -310,15 +302,13 @@
 </div>
 
 <script>
-    // ** আপনার Google Apps Script এর URL বসাবেন এখানে **
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLUF1_YKXMA1eMMy9_imfbmd5qchUH7IaLO2jRj6iGhod4oDnnDph1ByAdE8kY-NGi-A/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby5DfCiDauOnCzmaTiBVjyAKRgJZvanp3Gl76GJwoe1RL9l4onNgQE7WEDU5tjhS1iQJg/exec";
     
-    const _aPin = "U2hvcG5vQDIwMjRA"; // Shopno@2024@
-    const _mPin = "TWFuYWdlckAyMDI0QA=="; // Manager@2024@
+    const _aPin = "U2hvcG5vQDIwMjRA";
+    const _mPin = "TWFuYWdlckAyMDI0QA==";
     
     const BKASH_NO = "01711235481";
-    const NAGAD_NO = "01711235481";
-    const BANK_INFO = "ডাচ-বাংলা ব্যাংক, এ/সি: ১০৫.১২৩.৪৫৬৭, নাম: স্বপ্নবিলাস";
+    const BANK_INFO = "আল-আরাফাহ ইসলামী ব্যাংক (পিএলসি), এ/সি: ০০০০০০০০০, নাম: গোল্ডেন ফিসারিজ, শাখার নাম: মোংলা, রাউটিং নাম্বার: 015010948";
     
     let allTenants = [], allInvoices = [], allLoans = [], allExpenses = [], allBanks = [];
     let currentRole = ""; 
@@ -330,14 +320,11 @@
         try { const d = new Date(dateStr); return isNaN(d) ? dateStr : d.toLocaleDateString('bn-BD', {day:'numeric', month:'short', year:'numeric'}); } catch(e) { return dateStr; }
     }
     
-    // Clean Logout
     function logout() { window.location.href = window.location.href.split('?')[0]; }
 
-    // Direct WhatsApp Link Loading (Super Finder Logic - 100% Guaranteed to work)
     window.onload = async () => {
         const params = new URLSearchParams(window.location.search);
         
-        // Find parameters from URL
         const tIdParam = params.get('t');
         const monthParam = params.get('m');
         const yearParam = params.get('y');
@@ -349,19 +336,13 @@
             await fetchData();
             document.getElementById('loadingText').classList.add('hidden');
             
-            // SUPER FINDER LOGIC: Search the array combining strings, avoiding index issues
             const inv = [...allInvoices].reverse().find(row => {
-                const rowData = row.join('==='); // Converts row to string
-                // Handle year conversion just in case Google Sheets changed it to English digits
+                const rowData = row.join('==='); 
                 const engYear = String(yearParam).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d));
-                
-                return rowData.includes(tIdParam) && 
-                       rowData.includes(monthParam) && 
-                       (rowData.includes(yearParam) || rowData.includes(engYear));
+                return rowData.includes(tIdParam) && rowData.includes(monthParam) && (rowData.includes(yearParam) || rowData.includes(engYear));
             });
             
             if(inv) {
-                // Find Tenant data
                 const user = allTenants.find(t => t.some(cell => String(cell) === String(tIdParam)));
                 
                 if(user) {
@@ -369,7 +350,6 @@
                     document.getElementById('directInvoiceView').classList.remove('hidden');
                     document.getElementById('directInvoiceView').classList.add('flex');
                     
-                    // We dynamically figure out where Rent is based on 'INV-' presence to avoid column shift errors
                     let rentIdx = 4, elecIdx = 5, waterIdx = 6, srvIdx = 7, advIdx = 8, dueIdx = 9, totalIdx = 10;
                     if(!String(inv[0]).startsWith('INV-')) { 
                         rentIdx=3; elecIdx=4; waterIdx=5; srvIdx=6; advIdx=7; dueIdx=8; totalIdx=9; 
@@ -426,7 +406,6 @@
         } else { alert("ভুল তথ্য!"); location.reload(); }
     }
 
-    // BYPASS CACHING WITH TIME PARAMETER
     async function fetchData() {
         try {
             const cacheBuster = "&_=" + new Date().getTime();
@@ -447,7 +426,6 @@
     function updateFundCalculation() {
         let totalInv = 0, totalGiven = 0, totalReturned = 0, totalExp = 0, totalBank = 0;
         
-        // Find correct rent index based on schema
         let rIdx = 4;
         if(allInvoices.length > 1 && !String(allInvoices[1][0]).startsWith('INV-')) rIdx = 3;
         
@@ -473,7 +451,6 @@
         renderLoans();
     }
 
-    // --- Tenants ---
     function handleFlatSelection(flat) { showFlatStatusInForm(flat); renderTenantsByFlat(flat); }
     function renderTenantsByFlat(flat) {
         const listDiv = document.getElementById('allTenantList'); const header = document.getElementById('listHeader');
@@ -496,12 +473,11 @@
     function editTenant(id) { const t = allTenants.find(x => x[0] == id); if(!t) return; document.getElementById('tId').value = t[0]; document.getElementById('tName').value = t[1]; document.getElementById('tFlat').value = t[2]; document.getElementById('tPhone').value = t[3]; document.getElementById('tPass').value = t[4]; document.getElementById('tJoin').value = t[5] ? t[5].split('T')[0] : ""; document.getElementById('tExit').value = t[6] ? t[6].split('T')[0] : ""; document.getElementById('tStatus').value = t[7]; document.getElementById('formTitle').innerText = "তথ্য এডিট করুন"; document.getElementById('saveBtn').innerText = "আপডেট করুন"; handleFlatSelection(t[2]); switchTab('entry'); }
     function resetTenantForm() { document.getElementById('tenantForm').reset(); document.getElementById('tId').value = ""; document.getElementById('formFlatStatus').classList.add('hidden'); document.getElementById('allTenantList').innerHTML = ''; }
     function autoInactive(el) { if(el.value) document.getElementById('tStatus').value = "Inactive"; }
-    function showFlatStatusInForm(flat) { if(!flat) { document.getElementById('formFlatStatus').classList.add('hidden'); return; } const hist = allTenants.filter(t => t[2] === flat); const current = hist.find(t => t[7] === 'Active'); let html = `<b>ফ্ল্যাট ${flat} এর অবস্থা:</b><br>`; html += current ? `<span class="text-red-600 block mt-1">ভাড়া আছেন: ${current[1]}</span>` : `<span class="text-green-600 block mt-1">বর্তমানে ফ্ল্যাটটি খালি আছে।</span>`; document.getElementById('formFlatStatus').innerHTML = html; document.getElementById('formFlatStatus').classList.remove('hidden'); }
+    function showFlatStatusInForm(flat) { if(!flat) { document.getElementById('formFlatStatus').classList.add('hidden'); return; } const hist = allTenants.filter(t => t[2] === flat); const current = hist.find(t => t[7] === 'Active'); let html = `<b>ফ্ল্যাট ${flat} এর অবস্থা:</b><br>`; html += current ? `<span class="text-green-600 block mt-1">ভাড়া আছেন: ${current[1]}</span>` : `<span class="text-green-600 block mt-1">বর্তমানে ফ্ল্যাটটি খালি আছে।</span>`; document.getElementById('formFlatStatus').innerHTML = html; document.getElementById('formFlatStatus').classList.remove('hidden'); }
     function showFlatHistory(flat) { const hist = allTenants.filter(t => t[2] === flat); document.getElementById('histTitle').innerText = `ফ্ল্যাট ${flat} এর ইতিহাস`; let html = ''; [...hist].reverse().forEach(t => { html += `<div class="bg-slate-50 p-3 rounded-lg border hist-item"><p class="font-bold text-slate-700">${t[1]}</p><div class="flex justify-between text-xs text-slate-500 mt-1"><span>যোগদান: ${formatDate(t[5])}</span><span>বিদায়: ${formatDate(t[6])}</span></div><p class="text-xs mt-1">অবস্থা: <span class="${t[7]=='Active'?'text-green-600':'text-red-500'} font-bold">${t[7]}</span></p></div>`; }); document.getElementById('histContent').innerHTML = html || "কোন ইতিহাস পাওয়া যায়নি।"; document.getElementById('historyModal').classList.remove('hidden'); }
     function filterHistory() { const val = document.getElementById('histFilter').value.toLowerCase(); document.querySelectorAll('.hist-item').forEach(item => { item.style.display = item.innerText.toLowerCase().includes(val) ? "block" : "none"; }); }
     function closeModal() { document.getElementById('historyModal').classList.add('hidden'); }
 
-    // --- Dashboard & Invoice Gen ---
     function renderDashboard() {
         let html = ''; let activeCount = 0;
         FLATS_LIST.forEach(f => {
@@ -529,16 +505,14 @@
         
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveInvoice", id: "INV-"+Date.now(), tId: t[0], month, year: year, rent: document.getElementById('invRent').value, elec: document.getElementById('invElec').value||0, water: document.getElementById('invWater').value||0, service: document.getElementById('invService').value||0, adv: document.getElementById('invAdv').value||0, due: document.getElementById('invDue').value||0, total})});
         
-        // ** Generate Plain WhatsApp Link (100% Fail-proof) **
         const appUrl = window.location.href.split('#')[0].split('?')[0];
         const invLink = `${appUrl}?t=${t[0]}&m=${month}&y=${year}`;
         
-        const msg = `আসসালামু আলাইকুম প্রিয় ${t[2]},\nআপনার গত ${month} মাসের ইনভয়েস তৈরি হয়েছে।\nমোট বিল: ${total}/-\nবিকাশ/নগদ পেমেন্ট: ${BKASH_NO}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন।`;
+        const msg = `আসসালামু আলাইকুম, প্রিয় ${t[2]},\nআপনার গত ${month} মাসের ইনভয়েস তৈরি হয়েছে।\nমোট বিল: ${total}/-\nবিকাশ/নগদ পেমেন্ট: ${BKASH_NO}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন। ধন্যবাদান্তে স্বপ্নবিলাস`;
         window.open(`https://wa.me/${t[1]}?text=${encodeURIComponent(msg)}`); 
         fetchData(); switchTab('report');
     }
 
-    // --- Loans Section ---
     async function saveLoan() {
         const id = document.getElementById('lId').value || "L-" + Date.now();
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveLoan", id: id, person: document.getElementById('lPerson').value, amount: document.getElementById('lAmount').value, reason: document.getElementById('lReason').value, date: document.getElementById('lDate').value}) });
@@ -610,25 +584,76 @@
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "returnLoan", id: id, rAmount: retAmt, rDate: document.getElementById('lrDate').value}) }); alert("ফেরত এন্ট্রি সম্পন্ন!"); resetLoanReturnForm(); fetchData();
     }
 
-    // --- Expenses ---
-    async function saveExpense() { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveExpense", reason: document.getElementById('exReason').value, amount: document.getElementById('exAmount').value, date: document.getElementById('exDate').value}) }); alert("খরচ সেভ হয়েছে!"); document.getElementById('exReason').value=''; fetchData(); }
+    function resetExpenseForm() { document.getElementById('eId').value=''; document.getElementById('exReason').value=''; document.getElementById('exAmount').value=''; document.getElementById('exDate').value=''; document.getElementById('btnSaveExpense').innerText="খরচ সেভ করুন"; }
+    async function saveExpense() { 
+        const id = document.getElementById('eId').value || "E-" + Date.now();
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveExpense", id: id, reason: document.getElementById('exReason').value, amount: document.getElementById('exAmount').value, date: document.getElementById('exDate').value}) }); 
+        alert("খরচ সেভ হয়েছে!"); resetExpenseForm(); fetchData(); 
+    }
+    function editExpense(id) { 
+        const e = allExpenses.find(x => x[0] == id); if(!e) return; 
+        document.getElementById('eId').value = e[0]; document.getElementById('exReason').value = e[1]; document.getElementById('exAmount').value = e[2]; document.getElementById('exDate').value = e[3] ? e[3].split('T')[0] : ""; document.getElementById('btnSaveExpense').innerText="খরচ আপডেট করুন"; window.scrollTo({ top: 0, behavior: 'smooth' }); 
+    }
+    async function deleteExpense(id) { 
+        if(confirm("খরচ ডিলিট করতে চান?")) { await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({action: "deleteExpense", id: id}) }); alert("ডিলিট সম্পন্ন!"); fetchData(); } 
+    }
     function renderExpenses() {
         if(allExpenses.length < 2) return; let html = '';
-        allExpenses.slice(1).reverse().forEach(e => { html += `<div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500 flex justify-between items-center hover:bg-slate-50"><div><b class="text-slate-800 text-sm">${e[1]}</b><p class="text-xs text-slate-500 mt-1">${formatDate(e[3])}</p></div><div class="text-red-600 font-bold text-lg">${toBanglaWord(e[2])}/-</div></div>`; });
-        document.getElementById('expenseList').innerHTML = html;
+        allExpenses.slice(1).reverse().forEach(e => { 
+            html += `<div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500 flex justify-between items-center hover:bg-slate-50">
+                <div><b class="text-slate-800 text-sm">${e[1]}</b><p class="text-xs text-slate-500 mt-1">${formatDate(e[3])}</p></div>
+                <div class="text-right">
+                    <div class="text-red-600 font-bold text-lg">${toBanglaWord(e[2])}/-</div>
+                    <div class="mt-1 flex justify-end gap-1 admin-only">
+                        <button onclick="editExpense('${e[0]}')" class="text-blue-500 bg-blue-50 px-2 py-1 rounded text-xs"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteExpense('${e[0]}')" class="text-red-500 bg-red-50 px-2 py-1 rounded text-xs"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </div></div>`; 
+        });
+        document.getElementById('expenseList').innerHTML = html; applyRoleRestrictions();
     }
 
-    // --- Bank Deposits Tracking ---
-    async function saveBank() { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveBank", bankName: document.getElementById('bBankName').value, accName: document.getElementById('bAccName').value, accNo: document.getElementById('bAccNo').value, amount: document.getElementById('bAmount').value, date: document.getElementById('bDate').value}) }); alert("ব্যাংকে জমা সেভ হয়েছে!"); document.getElementById('bAmount').value=''; fetchData(); }
+
+    function resetBankForm() { document.getElementById('bkId').value=''; document.getElementById('bBankName').value=''; document.getElementById('bAccName').value=''; document.getElementById('bAccNo').value=''; document.getElementById('bAmount').value=''; document.getElementById('bDate').value=''; document.getElementById('btnSaveBank').innerText="ব্যাংকে জমা সেভ করুন"; }
+    async function saveBank() { 
+        const id = document.getElementById('bkId').value || "B-" + Date.now();
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveBank", id: id, bankName: document.getElementById('bBankName').value, accName: document.getElementById('bAccName').value, accNo: document.getElementById('bAccNo').value, amount: document.getElementById('bAmount').value, date: document.getElementById('bDate').value}) }); 
+        alert("ব্যাংকে জমা সেভ হয়েছে!"); resetBankForm(); fetchData(); 
+    }
+    function editBank(id) { 
+        const b = allBanks.find(x => x[0] == id); if(!b) return; 
+        document.getElementById('bkId').value = b[0]; document.getElementById('bBankName').value = b[1]; document.getElementById('bAccName').value = b[2]; document.getElementById('bAccNo').value = b[3]; document.getElementById('bAmount').value = b[4]; document.getElementById('bDate').value = b[5] ? b[5].split('T')[0] : ""; document.getElementById('btnSaveBank').innerText="আপডেট করুন"; window.scrollTo({ top: 0, behavior: 'smooth' }); 
+    }
+    async function deleteBank(id) { 
+        if(confirm("ব্যাংক রেকর্ড ডিলিট করতে চান?")) { await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({action: "deleteBank", id: id}) }); alert("ডিলিট সম্পন্ন!"); fetchData(); } 
+    }
     function renderBanks() {
         if(allBanks.length < 2) return; let html = '';
-        allBanks.slice(1).reverse().forEach(b => { html += `<div class="relative mb-4"><div class="absolute -left-6 top-1 w-3 h-3 bg-indigo-500 rounded-full border-2 border-white shadow"></div><div class="bg-white p-3 rounded-lg shadow-sm border border-slate-100 flex justify-between items-center"><div><b class="text-slate-800 text-sm">${b[1]}</b><p class="text-[10px] text-slate-500">A/C: ${b[3]} | ${formatDate(b[5])}</p></div><div class="text-indigo-600 font-bold text-sm bg-indigo-50 px-2 py-1 rounded">${toBanglaWord(b[4])}/-</div></div></div>`; });
-        document.getElementById('bankList').innerHTML = html;
+        allBanks.slice(1).reverse().forEach(b => { 
+            html += `<div class="relative mb-4"><div class="absolute -left-6 top-1 w-3 h-3 bg-indigo-500 rounded-full border-2 border-white shadow"></div>
+            <div class="bg-white p-3 rounded-lg shadow-sm border border-slate-100 flex justify-between items-center">
+                <div><b class="text-slate-800 text-sm">${b[1]}</b><p class="text-[10px] text-slate-500">A/C: ${b[3]} | ${formatDate(b[5])}</p></div>
+                <div class="text-right">
+                    <div class="text-indigo-600 font-bold text-sm bg-indigo-50 px-2 py-1 rounded">${toBanglaWord(b[4])}/-</div>
+                    <div class="mt-1 flex justify-end gap-1 admin-only">
+                        <button onclick="editBank('${b[0]}')" class="text-blue-500 bg-blue-50 px-2 py-1 rounded text-[10px]"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteBank('${b[0]}')" class="text-red-500 bg-red-50 px-2 py-1 rounded text-[10px]"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </div></div></div>`; 
+        });
+        document.getElementById('bankList').innerHTML = html; applyRoleRestrictions();
+    }
+
+    async function deleteInvoiceFromTable(id) {
+        if(confirm("আপনি কি নিশ্চিতভাবে এই ইনভয়েস ডিলিট করতে চান?")) {
+            await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({action: "deleteInvoice", id: id}) });
+            alert("ইনভয়েস ডিলিট সম্পন্ন!"); fetchData();
+        }
     }
 
     function renderReportTable() {
         if(allInvoices.length < 2) return;
-        let html = `<table class="w-full text-left border-collapse min-w-[600px]"><thead class="sticky top-0"><tr class="bg-slate-800 text-white text-[11px] md:text-xs"><th class="p-2 border">নাম/ফ্ল্যাট</th><th class="p-2 border">মাস</th><th class="p-2 border text-right">ভাড়া</th><th class="p-2 border text-right">বিদ্যুৎ</th><th class="p-2 border text-right">পানি</th><th class="p-2 border text-right">সার্ভিস</th><th class="p-2 border text-right">বকেয়া</th><th class="p-2 border text-right font-bold">মোট</th></tr></thead><tbody>`;
+        let html = `<table class="w-full text-left border-collapse min-w-[600px]"><thead class="sticky top-0"><tr class="bg-slate-800 text-white text-[11px] md:text-xs"><th class="p-2 border">নাম/ফ্ল্যাট</th><th class="p-2 border">মাস</th><th class="p-2 border text-right">ভাড়া</th><th class="p-2 border text-right">বিদ্যুৎ</th><th class="p-2 border text-right">পানি</th><th class="p-2 border text-right">সার্ভিস</th><th class="p-2 border text-right">বকেয়া</th><th class="p-2 border text-right font-bold">মোট</th><th class="p-2 border text-center admin-only">অ্যাকশন</th></tr></thead><tbody>`;
         let sums = { rent:0, elec:0, water:0, service:0, due:0, total:0 };
         
         let rIdx = 4, eIdx = 5, wIdx = 6, sIdx = 7, dIdx = 9, tIdx = 10;
@@ -637,14 +662,13 @@
         allInvoices.slice(1).reverse().forEach(inv => {
             const t = allTenants.find(t => t[0] == inv[1]);
             sums.rent += Number(inv[rIdx]); sums.elec += Number(inv[eIdx]); sums.water += Number(inv[wIdx]); sums.service += Number(inv[sIdx]); sums.due += Number(inv[dIdx]); sums.total += Number(inv[tIdx]);
-            html += `<tr class="border-b text-[11px] md:text-xs hover:bg-slate-50"><td class="p-2 border font-bold">${t?t[1]+'<br><span class="text-[9px] text-slate-400">('+t[2]+')</span>':'N/A'}</td><td class="p-2 border">${inv[2]}</td><td class="p-2 border text-right">${toBanglaWord(inv[rIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[eIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[wIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[sIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[dIdx])}</td><td class="p-2 border text-right font-bold text-blue-600">${toBanglaWord(inv[tIdx])}</td></tr>`;
+            html += `<tr class="border-b text-[11px] md:text-xs hover:bg-slate-50"><td class="p-2 border font-bold">${t?t[1]+'<br><span class="text-[9px] text-slate-400">('+t[2]+')</span>':'N/A'}</td><td class="p-2 border">${inv[2]}</td><td class="p-2 border text-right">${toBanglaWord(inv[rIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[eIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[wIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[sIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[dIdx])}</td><td class="p-2 border text-right font-bold text-blue-600">${toBanglaWord(inv[tIdx])}</td><td class="p-2 border text-center admin-only"><button onclick="deleteInvoiceFromTable('${inv[0]}')" class="text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-500 hover:text-white transition" title="ডিলিট"><i class="fas fa-trash-alt"></i></button></td></tr>`;
         });
         document.getElementById('reportContent').innerHTML = html + "</tbody></table>";
-        document.getElementById('headSummary').innerHTML = `<div class="bg-white p-3 rounded shadow border-l-4 border-blue-500">ভাড়া:<br><b class="text-sm md:text-base">${toBanglaWord(sums.rent)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-yellow-500">বিদ্যুৎ:<br><b class="text-sm md:text-base">${toBanglaWord(sums.elec)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-cyan-500">পানি:<br><b class="text-sm md:text-base">${toBanglaWord(sums.water)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-indigo-500">সার্ভিস:<br><b class="text-sm md:text-base">${toBanglaWord(sums.service)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-red-500 text-red-600">বকেয়া:<br><b class="text-sm md:text-base">${toBanglaWord(sums.due)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-green-500 text-green-600 font-bold">মোট:<br><b class="text-sm md:text-base">${toBanglaWord(sums.total)}</b></div>`;
-        updateFundCalculation();
+        document.getElementById('headSummary').innerHTML = `<div class="bg-white p-3 rounded shadow border-l-4 border-blue-500">বাসা ভাড়া:<br><b class="text-sm md:text-base">${toBanglaWord(sums.rent)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-yellow-500">বিদ্যুৎ বিল:<br><b class="text-sm md:text-base">${toBanglaWord(sums.elec)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-cyan-500">পানির বিল:<br><b class="text-sm md:text-base">${toBanglaWord(sums.water)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-indigo-500">সার্ভিস চার্জ:<br><b class="text-sm md:text-base">${toBanglaWord(sums.service)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-red-500 text-red-600">বকেয়া:<br><b class="text-sm md:text-base">${toBanglaWord(sums.due)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-green-500 text-green-600 font-bold">মোট:<br><b class="text-sm md:text-base">${toBanglaWord(sums.total)}</b></div>`;
+        updateFundCalculation(); applyRoleRestrictions();
     }
 
-    // --- User Portal & Beautiful Invoice ---
     function renderUserInvoices(user) {
         let html = '';
         let tIdx = 10;
@@ -694,8 +718,11 @@
                     
                     <div class="flex flex-row justify-between items-start border-b-2 border-slate-100 pb-6 mb-6 relative-z">
                         <div class="text-left">
-                            <h1 class="text-4xl font-extrabold text-blue-600 tracking-tight">স্বপ্নবিলাস</h1>
-                            <p class="text-sm text-slate-500 font-semibold mt-1 bg-slate-100 px-3 py-1 rounded-full inline-block">মাসিক বাসা ভাড়া ইনভয়েস</p>
+                            <h1 class="text-5xl font-black italic">
+                            <span class="text-blue-600 drop-shadow-md">স্বপ্ন</span><span class="text-red-500 drop-shadow-sm">বিলাস</span></h1>
+                            <p class="text-sm text-slate-500 font-semibold mt-1 bg-slate-50 px-3 py-1 rounded-full inline-block">এখন আসল জীবন উপভোগ করার সময়</p></br>
+                            <p class="inline-block px-3 py-1 text-sm font-bold text-slate-700 bg-white border-2 border-slate-800 rounded-md shadow-[3px_3px_0px_0px_rgba(30,41,59,1)]">
+                            মাসিক বাসা ভাড়া ইনভয়েস</p>
                         </div>
                         <div class="text-right">
                             <p class="text-sm text-slate-500">ইস্যু তারিখ: <b class="text-slate-800">${formatDate(new Date())}</b></p>
@@ -737,8 +764,7 @@
                     <div class="flex flex-row gap-4 text-sm relative-z w-full">
                         <div class="bg-pink-50 border border-pink-100 p-4 rounded-xl w-1/2">
                             <p class="font-bold text-pink-700 mb-2 border-b border-pink-200 pb-1"><i class="fas fa-mobile-alt mr-2"></i>মোবাইল ব্যাংকিং</p>
-                            <p class="text-slate-600 mb-1">বিকাশ: <b class="text-slate-800 text-base">${toBanglaWord(BKASH_NO)}</b></p>
-                            <p class="text-slate-600">নগদ: <b class="text-slate-800 text-base">${toBanglaWord(NAGAD_NO)}</b></p>
+                            <p class="text-slate-600 mb-1">বিকাশ/নগদ: <b class="text-slate-800 text-base">${toBanglaWord(BKASH_NO)}</b></p>
                         </div>
                         <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl w-1/2">
                             <p class="font-bold text-indigo-700 mb-2 border-b border-indigo-200 pb-1"><i class="fas fa-university mr-2"></i>ব্যাংক একাউন্ট</p>
@@ -752,7 +778,10 @@
             
             <div class="flex flex-col sm:flex-row gap-3 mt-6 no-print">
                 <button onclick="downloadBeautifulPDF('printArea_${containerId}')" class="flex-1 bg-slate-800 hover:bg-slate-900 transition text-white px-8 py-4 rounded-xl font-bold w-full flex justify-center items-center gap-2 text-lg shadow-lg">
-                    <i class="fas fa-print"></i> ইনভয়েস প্রিন্ট / পিডিএফ সেভ
+                    <i class="fas fa-print"></i> ইনভয়েস প্রিন্ট / পিডিএফ
+                </button>
+                <button onclick="closeInvoiceView()" class="flex-1 bg-blue-600 hover:bg-blue-700 transition text-white px-8 py-4 rounded-xl font-bold w-full flex justify-center items-center gap-2 text-lg shadow-lg">
+                    <i class="fas fa-arrow-left"></i> তালিকায় ফিরে যান
                 </button>
             </div>
         `;
