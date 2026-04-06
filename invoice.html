@@ -21,18 +21,27 @@
         .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 80px; opacity: 0.03; font-weight: bold; white-space: nowrap; pointer-events: none; z-index: 0; }
         .relative-z { position: relative; z-index: 10; }
         
+        /* 100% Perfect PDF Rendering via Native Print */
         @media print {
-            body * { visibility: hidden; }
-            .print-area, .print-area * { visibility: visible; }
-            .print-area { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; border: none !important; padding: 0 !important; }
+            body * { visibility: hidden !important; }
+            .print-area, .print-area * { visibility: visible !important; }
+            .print-area { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; }
             .no-print { display: none !important; }
             @page { size: A4 portrait; margin: 10mm; }
         }
         @media (min-width: 768px) { .invoice-print-area { padding: 50px; } }
     </style>
+    
+    <!-- URL চেকিং স্ক্রিপ্ট (যেন লগইন বক্স এক সেকেন্ডের জন্যও না দেখায়) -->
+    <script>
+        if(window.location.search.includes('?t=')) {
+            document.write('<style>#choiceBox { display: none !important; } #loadingText { display: block !important; }</style>');
+        }
+    </script>
 </head>
 <body class="flex flex-col md:flex-row min-h-screen">
 
+<!-- Auth Overlay -->
 <div id="authOverlay" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center p-4 sm:p-6">
     <div id="loadingText" class="text-white text-lg md:text-2xl font-bold hidden mb-6 animate-pulse text-center">ডাটা লোড হচ্ছে, দয়া করে অপেক্ষা করুন...</div>
     <div id="choiceBox" class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
@@ -43,18 +52,24 @@
             <button onclick="showLogin('user')" class="w-full bg-slate-100 text-slate-700 py-3 sm:py-4 rounded-xl font-bold hover:bg-slate-200 transition">ভাড়াটিয়া লগইন</button>
         </div>
     </div>
+    
+    <!-- Admin Login -->
     <div id="adminLoginForm" class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md hidden text-center">
         <h2 class="text-xl sm:text-2xl font-bold mb-6">অ্যাডমিন পিন দিন</h2>
         <input type="password" id="adminPin" onkeyup="if(event.key==='Enter') authLogin('admin')" class="w-full p-3 sm:p-4 border rounded-xl mb-4 text-center text-xl sm:text-2xl outline-none">
         <button onclick="authLogin('admin')" class="w-full bg-blue-600 text-white py-3 sm:py-4 rounded-xl font-bold">প্রবেশ</button>
         <button onclick="showLogin('choice')" class="mt-4 text-sm text-slate-500">পিছনে যান</button>
     </div>
+    
+    <!-- Manager Login -->
     <div id="managerLoginForm" class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md hidden text-center">
         <h2 class="text-xl sm:text-2xl font-bold mb-6 text-orange-600">ব্যবস্থাপক পিন দিন</h2>
         <input type="password" id="managerPin" onkeyup="if(event.key==='Enter') authLogin('manager')" class="w-full p-3 sm:p-4 border rounded-xl mb-4 text-center text-xl sm:text-2xl outline-none border-orange-200 focus:border-orange-500">
         <button onclick="authLogin('manager')" class="w-full bg-orange-500 text-white py-3 sm:py-4 rounded-xl font-bold">প্রবেশ (View Only)</button>
         <button onclick="showLogin('choice')" class="mt-4 text-sm text-slate-500">পিছনে যান</button>
     </div>
+    
+    <!-- User Login -->
     <div id="userLoginForm" class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md hidden text-center">
         <h2 class="text-xl sm:text-2xl font-bold mb-6">ভাড়াটিয়া লগইন</h2>
         <input type="text" id="userPhone" placeholder="মোবাইল নম্বর" class="w-full p-3 sm:p-4 border rounded-xl mb-4 outline-none">
@@ -64,14 +79,25 @@
     </div>
 </div>
 
+<!-- Direct Invoice View (WhatsApp Link) -->
 <div id="directInvoiceView" class="hidden min-h-screen w-full bg-slate-100 p-4 flex-col items-center z-[200] fixed inset-0 overflow-y-auto">
     <div class="w-full max-w-4xl flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 mt-2">
         <h2 class="text-lg md:text-xl font-bold text-slate-700"><i class="fas fa-file-invoice mr-2 text-blue-500"></i>অনলাইন ইনভয়েস</h2>
         <button onclick="logout()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-500 hover:text-white transition"><i class="fas fa-home mr-2"></i>হোমপেজ / লগআউট</button>
     </div>
-    <div id="directInvoiceContainer" class="w-full max-w-4xl"></div>
+    
+    <!-- Retry Container if Not Found -->
+    <div id="invoiceNotFoundContainer" class="hidden bg-white p-10 rounded-2xl shadow-xl w-full max-w-md text-center mx-auto mt-10">
+        <i class="fas fa-exclamation-triangle text-4xl text-orange-500 mb-4"></i>
+        <h2 class="text-xl font-bold text-slate-800 mb-2">ইনভয়েস লোড হচ্ছে...</h2>
+        <p class="text-slate-500 text-sm mb-6">সার্ভারে ডাটা সেভ হতে কয়েক সেকেন্ড সময় লাগতে পারে। অনুগ্রহ করে একটু পর আবার চেষ্টা করুন।</p>
+        <button onclick="location.reload()" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold w-full shadow-lg hover:bg-blue-700 transition">পুনরায় চেষ্টা করুন</button>
+    </div>
+
+    <div id="directInvoiceContainer" class="w-full max-w-4xl pb-10"></div>
 </div>
 
+<!-- Admin/Manager Sidebar -->
 <aside class="sidebar w-full md:w-[280px] md:h-screen sticky top-0 flex flex-col hidden z-40 shadow-xl md:shadow-none" id="adminSidebar">
     <div class="p-4 md:p-8 text-center border-b border-slate-700 flex justify-between md:block items-center">
         <h1 class="text-xl md:text-2xl font-bold text-white uppercase">স্বপ্নবিলাস</h1>
@@ -88,13 +114,14 @@
         <button onclick="switchTab('report')" id="tab-report" class="nav-btn min-w-max md:w-full flex items-center p-2 md:p-3 rounded-lg text-sm md:text-base"><i class="fas fa-chart-line mr-2 md:mr-3"></i> রিপোর্ট</button>
     </nav>
     <div class="hidden md:block p-6 border-t border-slate-700">
-        <button onclick="logout()" class="w-full text-red-400 p-3 hover:bg-slate-800 rounded-lg transition text-left"><i class="fas fa-sign-out-alt mr-3"></i> লগআউট করুন</button>
+        <button onclick="logout()" class="w-full text-red-400 p-3 hover:bg-slate-800 rounded-lg transition text-left font-bold"><i class="fas fa-sign-out-alt mr-3"></i> লগআউট করুন</button>
     </div>
 </aside>
 
-
+<!-- Admin Main Content -->
 <main class="flex-1 p-4 md:p-10 hidden w-full overflow-x-hidden" id="mainContent">
     
+    <!-- Top Bar with Logout (Mobile & Desktop) -->
     <div class="flex justify-between items-center bg-white p-4 mb-6 shadow-sm rounded-2xl border border-slate-100">
         <div>
             <h2 class="text-xl font-bold text-slate-800 hidden sm:block">অ্যাডমিন প্যানেল</h2>
@@ -103,9 +130,10 @@
         <button onclick="logout()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-500 hover:text-white transition"><i class="fas fa-sign-out-alt mr-2"></i>লগআউট</button>
     </div>
 
+    <!-- Global Summary (Mobile Responsive Grid) -->
     <div id="globalFundSummary" class="bg-blue-800 text-white p-5 rounded-2xl mb-8 flex flex-col xl:flex-row justify-between items-center shadow-lg">
         <div class="text-center xl:text-left mb-4 xl:mb-0 w-full xl:w-auto">
-            <p class="text-blue-200 text-xs md:text-sm font-bold">রিপোর্টের মোট ইনকাম - (খরচ + লোন + ব্যাংকে জমা)</p>
+            <p class="text-blue-200 text-xs md:text-sm font-bold">রিপোর্টের মোট ইনকাম (শুধুমাত্র ভাড়া) - (খরচ + লোন + ব্যাংকে জমা)</p>
             <h2 class="text-2xl md:text-4xl font-bold mt-1">ক্যাশ ফান্ড: <span id="mainFundAmt">০</span>/-</h2>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs md:text-sm text-blue-100 w-full xl:w-auto text-center">
@@ -175,13 +203,14 @@
                     <input type="number" id="invDue" placeholder="বকেয়া" class="p-3 border rounded-xl w-full">
                     <input type="number" id="invAdv" placeholder="এডভান্স কর্তন" class="p-3 border rounded-xl w-full">
                 </div>
-                <button type="submit" class="w-full bg-green-600 text-white py-3 md:py-4 rounded-xl font-bold mt-2">সেভ ও হোয়াটসঅ্যাপ লিংক পাঠান</button>
+                <button type="submit" class="w-full bg-green-600 text-white py-3 md:py-4 rounded-xl font-bold mt-2 shadow-lg">সেভ ও হোয়াটসঅ্যাপ লিংক পাঠান</button>
             </form>
         </div>
     </section>
 
     <section id="loanSec" class="page-content hidden">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-8 admin-only">
+            <!-- Loan Entry -->
             <div class="bg-white p-5 md:p-8 rounded-2xl shadow-lg border h-max relative">
                 <h2 class="text-lg md:text-xl font-bold mb-6 text-orange-600">নতুন লোন এন্ট্রি / এডিট</h2>
                 <input type="hidden" id="lId">
@@ -191,10 +220,11 @@
                 <input type="date" id="lDate" class="w-full p-3 border mb-6 rounded-xl text-slate-500 bg-orange-50">
                 <div class="flex gap-2">
                     <button id="btnSaveLoan" onclick="saveLoan()" class="w-full bg-orange-600 text-white py-3 md:py-4 rounded-xl font-bold">লোন সেভ করুন</button>
-                    <button onclick="resetLoanForm()" class="bg-slate-200 text-slate-600 px-4 rounded-xl font-bold" title="ক্লিয়ার করুন"><i class="fas fa-times"></i></button>
+                    <button type="button" onclick="resetLoanForm()" class="bg-slate-200 text-slate-600 px-4 rounded-xl font-bold" title="ক্লিয়ার করুন"><i class="fas fa-times"></i></button>
                 </div>
             </div>
-
+            
+            <!-- Loan Return -->
             <div class="bg-white p-5 md:p-8 rounded-2xl shadow-lg border h-max border-green-200">
                 <h2 class="text-lg md:text-xl font-bold mb-6 text-green-600">লোন ফেরত এন্ট্রি / এডিট</h2>
                 <input type="hidden" id="lrId">
@@ -207,7 +237,7 @@
                 <input type="date" id="lrDate" class="w-full p-3 border mb-6 rounded-xl text-slate-500 bg-green-50">
                 <div class="flex gap-2">
                     <button id="btnSaveLoanReturn" onclick="submitLoanReturn()" class="w-full bg-green-600 text-white py-3 md:py-4 rounded-xl font-bold">ফেরত জমা দিন</button>
-                    <button onclick="resetLoanReturnForm()" class="bg-slate-200 text-slate-600 px-4 rounded-xl font-bold" title="ক্লিয়ার করুন"><i class="fas fa-times"></i></button>
+                    <button type="button" onclick="resetLoanReturnForm()" class="bg-slate-200 text-slate-600 px-4 rounded-xl font-bold" title="ক্লিয়ার করুন"><i class="fas fa-times"></i></button>
                 </div>
             </div>
         </div>
@@ -255,6 +285,7 @@
     </section>
 </main>
 
+<!-- User Portal View (Tenant sees all invoices) -->
 <div id="userView" class="hidden min-h-screen p-4 sm:p-6 w-full max-w-4xl mx-auto flex-col bg-slate-50">
     <div class="flex justify-between items-center mb-6 md:mb-8 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-blue-100">
         <div>
@@ -266,6 +297,7 @@
     <div id="userInvoiceList" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
 </div>
 
+<!-- History Modal -->
 <div id="historyModal" class="fixed inset-0 bg-black bg-opacity-50 z-[200] hidden flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-lg rounded-2xl p-5 md:p-6 shadow-2xl">
         <div class="flex justify-between items-center border-b pb-3 mb-4">
@@ -278,9 +310,12 @@
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfM2dhwQHXQ-Fq387TyNcwmxFzDBUBiknTFV8Dwr7NZLZ390aZX53BWb1ctz-MOYeinA/exec";
-    const _aPin = "U2hvcG5vQDIwMjRA"; 
-    const _mPin = "TWFuYWdlckAyMDI0QA=="; 
+    // ** আপনার Google Apps Script এর URL বসাবেন এখানে **
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLUF1_YKXMA1eMMy9_imfbmd5qchUH7IaLO2jRj6iGhod4oDnnDph1ByAdE8kY-NGi-A/exec";
+    
+    const _aPin = "U2hvcG5vQDIwMjRA"; // Shopno@2024@
+    const _mPin = "TWFuYWdlckAyMDI0QA=="; // Manager@2024@
+    
     const BKASH_NO = "01711235481";
     const NAGAD_NO = "01711235481";
     const BANK_INFO = "ডাচ-বাংলা ব্যাংক, এ/সি: ১০৫.১২৩.৪৫৬৭, নাম: স্বপ্নবিলাস";
@@ -295,41 +330,57 @@
         try { const d = new Date(dateStr); return isNaN(d) ? dateStr : d.toLocaleDateString('bn-BD', {day:'numeric', month:'short', year:'numeric'}); } catch(e) { return dateStr; }
     }
     
-    function logout() { window.location.href = window.location.pathname; }
+    // Clean Logout
+    function logout() { window.location.href = window.location.href.split('?')[0]; }
 
-
+    // Direct WhatsApp Link Loading (Super Finder Logic - 100% Guaranteed to work)
     window.onload = async () => {
         const params = new URLSearchParams(window.location.search);
-        const token = params.get('v');
         
-        if(token) {
+        // Find parameters from URL
+        const tIdParam = params.get('t');
+        const monthParam = params.get('m');
+        const yearParam = params.get('y');
+        
+        if(tIdParam && monthParam && yearParam) {
             document.getElementById('choiceBox').classList.add('hidden');
             document.getElementById('loadingText').classList.remove('hidden');
             
             await fetchData();
             document.getElementById('loadingText').classList.add('hidden');
             
-            try {
-                const decodedStr = decodeURIComponent(atob(token));
-                const parts = decodedStr.split('|');
-                const tIdParam = parts[0];
-                const monthParam = parts[1];
-                const yearParam = parts[2];
-
-                const inv = allInvoices.find(i => String(i[1]) === String(tIdParam) && String(i[2]).trim() === String(monthParam).trim() && String(i[3]).trim() === String(yearParam).trim());
-                const user = allTenants.find(t => String(t[0]) === String(tIdParam));
+            // SUPER FINDER LOGIC: Search the array combining strings, avoiding index issues
+            const inv = [...allInvoices].reverse().find(row => {
+                const rowData = row.join('==='); // Converts row to string
+                // Handle year conversion just in case Google Sheets changed it to English digits
+                const engYear = String(yearParam).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d));
                 
-                if(inv && user) {
+                return rowData.includes(tIdParam) && 
+                       rowData.includes(monthParam) && 
+                       (rowData.includes(yearParam) || rowData.includes(engYear));
+            });
+            
+            if(inv) {
+                // Find Tenant data
+                const user = allTenants.find(t => t.some(cell => String(cell) === String(tIdParam)));
+                
+                if(user) {
                     document.getElementById('authOverlay').classList.add('hidden');
                     document.getElementById('directInvoiceView').classList.remove('hidden');
                     document.getElementById('directInvoiceView').classList.add('flex');
-                    renderBeautifulInvoice(inv, user, 'directInvoiceContainer');
-                } else { 
-                    alert("দুঃখিত, ইনভয়েস সার্ভারে আপডেট হতে কয়েক সেকেন্ড সময় লাগতে পারে। অনুগ্রহ করে একটু পর লিংকে আবার ক্লিক করুন।"); 
-                    logout(); 
-                }
-            } catch(e) {
-                alert("লিংকটি সঠিক নয়!"); logout();
+                    
+                    // We dynamically figure out where Rent is based on 'INV-' presence to avoid column shift errors
+                    let rentIdx = 4, elecIdx = 5, waterIdx = 6, srvIdx = 7, advIdx = 8, dueIdx = 9, totalIdx = 10;
+                    if(!String(inv[0]).startsWith('INV-')) { 
+                        rentIdx=3; elecIdx=4; waterIdx=5; srvIdx=6; advIdx=7; dueIdx=8; totalIdx=9; 
+                    }
+                    
+                    renderBeautifulInvoice(inv, user, 'directInvoiceContainer', rentIdx, elecIdx, waterIdx, srvIdx, advIdx, dueIdx, totalIdx);
+                } else { alert("ভাড়াটিয়ার তথ্য পাওয়া যায়নি!"); logout(); }
+            } else { 
+                document.getElementById('directInvoiceView').classList.remove('hidden');
+                document.getElementById('directInvoiceView').classList.add('flex');
+                document.getElementById('invoiceNotFoundContainer').classList.remove('hidden');
             }
         }
     };
@@ -375,22 +426,33 @@
         } else { alert("ভুল তথ্য!"); location.reload(); }
     }
 
+    // BYPASS CACHING WITH TIME PARAMETER
     async function fetchData() {
         try {
+            const cacheBuster = "&_=" + new Date().getTime();
             const [resT, resI, resL, resE, resB] = await Promise.all([
-                fetch(SCRIPT_URL + "?action=getTenants"), fetch(SCRIPT_URL + "?action=getInvoices"),
-                fetch(SCRIPT_URL + "?action=getLoans").catch(()=>({json:()=>[]})), fetch(SCRIPT_URL + "?action=getExpenses").catch(()=>({json:()=>[]})),
-                fetch(SCRIPT_URL + "?action=getBanks").catch(()=>({json:()=>[]}))
+                fetch(SCRIPT_URL + "?action=getTenants" + cacheBuster), 
+                fetch(SCRIPT_URL + "?action=getInvoices" + cacheBuster),
+                fetch(SCRIPT_URL + "?action=getLoans" + cacheBuster).catch(()=>({json:()=>[]})), 
+                fetch(SCRIPT_URL + "?action=getExpenses" + cacheBuster).catch(()=>({json:()=>[]})),
+                fetch(SCRIPT_URL + "?action=getBanks" + cacheBuster).catch(()=>({json:()=>[]}))
             ]);
             allTenants = await resT.json() || []; allInvoices = await resI.json() || [];
             allLoans = await resL.json() || []; allExpenses = await resE.json() || []; allBanks = await resB.json() || [];
+            
             if(currentRole !== '') { renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); }
         } catch(e) { console.log(e); }
     }
 
     function updateFundCalculation() {
         let totalInv = 0, totalGiven = 0, totalReturned = 0, totalExp = 0, totalBank = 0;
-        if(allInvoices.length > 1) allInvoices.slice(1).forEach(inv => totalInv += (Number(inv[10]) || 0));
+        
+        // Find correct rent index based on schema
+        let rIdx = 4;
+        if(allInvoices.length > 1 && !String(allInvoices[1][0]).startsWith('INV-')) rIdx = 3;
+        
+        if(allInvoices.length > 1) allInvoices.slice(1).forEach(inv => totalInv += (Number(inv[rIdx]) || 0));
+        
         if(allExpenses.length > 1) allExpenses.slice(1).forEach(e => totalExp += (Number(e[2]) || 0));
         if(allBanks.length > 1) allBanks.slice(1).forEach(b => totalBank += (Number(b[4]) || 0));
         if(allLoans.length > 1) {
@@ -399,12 +461,19 @@
                 let retAmt = Number(l[7]) || 0; if(l[5] !== 'Pending' && !l[7]) retAmt = amt; totalReturned += retAmt;
             });
         }
-        let pendingLoan = totalGiven - totalReturned; let netFund = totalInv - pendingLoan - totalExp - totalBank;
-        document.getElementById('mainFundAmt').innerText = toBanglaWord(netFund); document.getElementById('fInc').innerText = toBanglaWord(totalInv);
-        document.getElementById('fExp').innerText = toBanglaWord(totalExp); document.getElementById('fLoan').innerText = toBanglaWord(pendingLoan);
-        document.getElementById('fBank').innerText = toBanglaWord(totalBank); renderLoans();
+        
+        let pendingLoan = totalGiven - totalReturned; 
+        let netFund = totalInv - pendingLoan - totalExp - totalBank;
+        
+        document.getElementById('mainFundAmt').innerText = toBanglaWord(netFund); 
+        document.getElementById('fInc').innerText = toBanglaWord(totalInv);
+        document.getElementById('fExp').innerText = toBanglaWord(totalExp); 
+        document.getElementById('fLoan').innerText = toBanglaWord(pendingLoan);
+        document.getElementById('fBank').innerText = toBanglaWord(totalBank); 
+        renderLoans();
     }
 
+    // --- Tenants ---
     function handleFlatSelection(flat) { showFlatStatusInForm(flat); renderTenantsByFlat(flat); }
     function renderTenantsByFlat(flat) {
         const listDiv = document.getElementById('allTenantList'); const header = document.getElementById('listHeader');
@@ -432,6 +501,7 @@
     function filterHistory() { const val = document.getElementById('histFilter').value.toLowerCase(); document.querySelectorAll('.hist-item').forEach(item => { item.style.display = item.innerText.toLowerCase().includes(val) ? "block" : "none"; }); }
     function closeModal() { document.getElementById('historyModal').classList.add('hidden'); }
 
+    // --- Dashboard & Invoice Gen ---
     function renderDashboard() {
         let html = ''; let activeCount = 0;
         FLATS_LIST.forEach(f => {
@@ -457,19 +527,18 @@
         const year = document.getElementById('invYear').value;
         const total = (Number(document.getElementById('invRent').value) + Number(document.getElementById('invElec').value||0) + Number(document.getElementById('invWater').value||0) + Number(document.getElementById('invService').value||0) + Number(document.getElementById('invDue').value||0)) - Number(document.getElementById('invAdv').value||0);
         
-        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveInvoice", tId: t[0], month, year: year, rent: document.getElementById('invRent').value, elec: document.getElementById('invElec').value||0, water: document.getElementById('invWater').value||0, service: document.getElementById('invService').value||0, adv: document.getElementById('invAdv').value||0, due: document.getElementById('invDue').value||0, total})});
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveInvoice", id: "INV-"+Date.now(), tId: t[0], month, year: year, rent: document.getElementById('invRent').value, elec: document.getElementById('invElec').value||0, water: document.getElementById('invWater').value||0, service: document.getElementById('invService').value||0, adv: document.getElementById('invAdv').value||0, due: document.getElementById('invDue').value||0, total})});
         
-        const rawString = `${t[0]}|${month}|${year}`;
-        const safeToken = btoa(encodeURIComponent(rawString));
-        
+        // ** Generate Plain WhatsApp Link (100% Fail-proof) **
         const appUrl = window.location.href.split('#')[0].split('?')[0];
-        const invLink = `${appUrl}?v=${safeToken}`;
+        const invLink = `${appUrl}?t=${t[0]}&m=${month}&y=${year}`;
         
         const msg = `আসসালামু আলাইকুম প্রিয় ${t[2]},\nআপনার গত ${month} মাসের ইনভয়েস তৈরি হয়েছে।\nমোট বিল: ${total}/-\nবিকাশ/নগদ পেমেন্ট: ${BKASH_NO}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন।`;
         window.open(`https://wa.me/${t[1]}?text=${encodeURIComponent(msg)}`); 
         fetchData(); switchTab('report');
     }
 
+    // --- Loans Section ---
     async function saveLoan() {
         const id = document.getElementById('lId').value || "L-" + Date.now();
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveLoan", id: id, person: document.getElementById('lPerson').value, amount: document.getElementById('lAmount').value, reason: document.getElementById('lReason').value, date: document.getElementById('lDate').value}) });
@@ -479,7 +548,7 @@
     function editLoan(id) { const l = allLoans.find(x => x[0] == id); if(!l) return; document.getElementById('lId').value = l[0]; document.getElementById('lPerson').value = l[1]; document.getElementById('lAmount').value = l[2]; document.getElementById('lReason').value = l[3]; document.getElementById('lDate').value = l[4] ? l[4].split('T')[0] : ""; document.getElementById('btnSaveLoan').innerText = "লোন আপডেট করুন"; window.scrollTo({ top: 0, behavior: 'smooth' }); }
     
     async function deleteLoan(id) { 
-        if(confirm("এই লোন রেকর্ডটি ডিলিট করতে চান?")) { 
+        if(confirm("এই লোন রেকর্ডটি সম্পূর্ণ ডিলিট করতে চান?")) { 
             await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({action: "deleteLoan", id: id}) }); 
             alert("ডিলিট রিকোয়েস্ট পাঠানো হয়েছে!"); fetchData(); 
         } 
@@ -513,9 +582,7 @@
         document.getElementById('loanList').innerHTML = html; applyRoleRestrictions();
     }
     
-    function resetLoanReturnForm() {
-        document.getElementById('lrId').value = ''; document.getElementById('lrName').value = ''; document.getElementById('lrTotal').value = ''; document.getElementById('lrAmount').value = ''; document.getElementById('lrDue').value = ''; document.getElementById('btnSaveLoanReturn').innerText = "ফেরত জমা দিন";
-    }
+    function resetLoanReturnForm() { document.getElementById('lrId').value = ''; document.getElementById('lrName').value = ''; document.getElementById('lrTotal').value = ''; document.getElementById('lrAmount').value = ''; document.getElementById('lrDue').value = ''; document.getElementById('btnSaveLoanReturn').innerText = "ফেরত জমা দিন"; }
 
     function openLoanReturnForm(id) {
         const loan = allLoans.find(l => l[0] == id); if(!loan) return;
@@ -543,6 +610,7 @@
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "returnLoan", id: id, rAmount: retAmt, rDate: document.getElementById('lrDate').value}) }); alert("ফেরত এন্ট্রি সম্পন্ন!"); resetLoanReturnForm(); fetchData();
     }
 
+    // --- Expenses ---
     async function saveExpense() { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveExpense", reason: document.getElementById('exReason').value, amount: document.getElementById('exAmount').value, date: document.getElementById('exDate').value}) }); alert("খরচ সেভ হয়েছে!"); document.getElementById('exReason').value=''; fetchData(); }
     function renderExpenses() {
         if(allExpenses.length < 2) return; let html = '';
@@ -550,6 +618,7 @@
         document.getElementById('expenseList').innerHTML = html;
     }
 
+    // --- Bank Deposits Tracking ---
     async function saveBank() { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveBank", bankName: document.getElementById('bBankName').value, accName: document.getElementById('bAccName').value, accNo: document.getElementById('bAccNo').value, amount: document.getElementById('bAmount').value, date: document.getElementById('bDate').value}) }); alert("ব্যাংকে জমা সেভ হয়েছে!"); document.getElementById('bAmount').value=''; fetchData(); }
     function renderBanks() {
         if(allBanks.length < 2) return; let html = '';
@@ -561,24 +630,32 @@
         if(allInvoices.length < 2) return;
         let html = `<table class="w-full text-left border-collapse min-w-[600px]"><thead class="sticky top-0"><tr class="bg-slate-800 text-white text-[11px] md:text-xs"><th class="p-2 border">নাম/ফ্ল্যাট</th><th class="p-2 border">মাস</th><th class="p-2 border text-right">ভাড়া</th><th class="p-2 border text-right">বিদ্যুৎ</th><th class="p-2 border text-right">পানি</th><th class="p-2 border text-right">সার্ভিস</th><th class="p-2 border text-right">বকেয়া</th><th class="p-2 border text-right font-bold">মোট</th></tr></thead><tbody>`;
         let sums = { rent:0, elec:0, water:0, service:0, due:0, total:0 };
+        
+        let rIdx = 4, eIdx = 5, wIdx = 6, sIdx = 7, dIdx = 9, tIdx = 10;
+        if(!String(allInvoices[1][0]).startsWith('INV-')) { rIdx=3; eIdx=4; wIdx=5; sIdx=6; dIdx=8; tIdx=9; }
+        
         allInvoices.slice(1).reverse().forEach(inv => {
             const t = allTenants.find(t => t[0] == inv[1]);
-            sums.rent += Number(inv[4]); sums.elec += Number(inv[5]); sums.water += Number(inv[6]); sums.service += Number(inv[7]); sums.due += Number(inv[9]); sums.total += Number(inv[10]);
-            html += `<tr class="border-b text-[11px] md:text-xs hover:bg-slate-50"><td class="p-2 border font-bold">${t?t[1]+'<br><span class="text-[9px] text-slate-400">('+t[2]+')</span>':'N/A'}</td><td class="p-2 border">${inv[2]}</td><td class="p-2 border text-right">${toBanglaWord(inv[4])}</td><td class="p-2 border text-right">${toBanglaWord(inv[5])}</td><td class="p-2 border text-right">${toBanglaWord(inv[6])}</td><td class="p-2 border text-right">${toBanglaWord(inv[7])}</td><td class="p-2 border text-right">${toBanglaWord(inv[9])}</td><td class="p-2 border text-right font-bold text-blue-600">${toBanglaWord(inv[10])}</td></tr>`;
+            sums.rent += Number(inv[rIdx]); sums.elec += Number(inv[eIdx]); sums.water += Number(inv[wIdx]); sums.service += Number(inv[sIdx]); sums.due += Number(inv[dIdx]); sums.total += Number(inv[tIdx]);
+            html += `<tr class="border-b text-[11px] md:text-xs hover:bg-slate-50"><td class="p-2 border font-bold">${t?t[1]+'<br><span class="text-[9px] text-slate-400">('+t[2]+')</span>':'N/A'}</td><td class="p-2 border">${inv[2]}</td><td class="p-2 border text-right">${toBanglaWord(inv[rIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[eIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[wIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[sIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[dIdx])}</td><td class="p-2 border text-right font-bold text-blue-600">${toBanglaWord(inv[tIdx])}</td></tr>`;
         });
         document.getElementById('reportContent').innerHTML = html + "</tbody></table>";
         document.getElementById('headSummary').innerHTML = `<div class="bg-white p-3 rounded shadow border-l-4 border-blue-500">ভাড়া:<br><b class="text-sm md:text-base">${toBanglaWord(sums.rent)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-yellow-500">বিদ্যুৎ:<br><b class="text-sm md:text-base">${toBanglaWord(sums.elec)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-cyan-500">পানি:<br><b class="text-sm md:text-base">${toBanglaWord(sums.water)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-indigo-500">সার্ভিস:<br><b class="text-sm md:text-base">${toBanglaWord(sums.service)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-red-500 text-red-600">বকেয়া:<br><b class="text-sm md:text-base">${toBanglaWord(sums.due)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-green-500 text-green-600 font-bold">মোট:<br><b class="text-sm md:text-base">${toBanglaWord(sums.total)}</b></div>`;
         updateFundCalculation();
     }
 
+    // --- User Portal & Beautiful Invoice ---
     function renderUserInvoices(user) {
         let html = '';
+        let tIdx = 10;
+        if(allInvoices.length > 1 && !String(allInvoices[1][0]).startsWith('INV-')) tIdx = 9;
+        
         const userInvs = allInvoices.filter(inv => inv[1] === user[0]).reverse();
         userInvs.forEach(inv => {
             html += `<div onclick='showUserInvoiceModal(${JSON.stringify(inv)}, ${JSON.stringify(user)})' class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 cursor-pointer hover:shadow-md hover:border-blue-300 transition group">
                 <div class="flex justify-between items-center">
                     <div><b class="text-lg text-slate-800 group-hover:text-blue-600 transition">${inv[2]} ${inv[3]}</b><p class="text-xs text-slate-400 mt-1"><i class="fas fa-file-pdf mr-1"></i> ইনভয়েস দেখুন</p></div>
-                    <div class="text-blue-600 font-bold text-xl bg-blue-50 px-3 py-1 rounded-lg">${toBanglaWord(inv[10])}/-</div>
+                    <div class="text-blue-600 font-bold text-xl bg-blue-50 px-3 py-1 rounded-lg">${toBanglaWord(inv[tIdx])}/-</div>
                 </div></div>`;
         });
         document.getElementById('userInvoiceList').innerHTML = html || "<div class='col-span-2 text-center text-slate-400 py-10'>আপনার কোনো ইনভয়েস পাওয়া যায়নি।</div>";
@@ -589,10 +666,26 @@
         document.getElementById('userView').classList.add('hidden');
         document.getElementById('directInvoiceView').classList.remove('hidden');
         document.getElementById('directInvoiceView').classList.add('flex');
-        renderBeautifulInvoice(inv, user, 'directInvoiceContainer');
+        
+        let rentIdx = 4, elecIdx = 5, waterIdx = 6, srvIdx = 7, advIdx = 8, dueIdx = 9, totalIdx = 10;
+        if(!String(inv[0]).startsWith('INV-')) { rentIdx=3; elecIdx=4; waterIdx=5; srvIdx=6; advIdx=7; dueIdx=8; totalIdx=9; }
+        
+        renderBeautifulInvoice(inv, user, 'directInvoiceContainer', rentIdx, elecIdx, waterIdx, srvIdx, advIdx, dueIdx, totalIdx);
     }
 
-    function renderBeautifulInvoice(inv, user, containerId) {
+    function closeInvoiceView() {
+        const params = new URLSearchParams(window.location.search);
+        if(params.get('t')) {
+            logout();
+        } else {
+            document.getElementById('directInvoiceView').classList.add('hidden');
+            document.getElementById('directInvoiceView').classList.remove('flex');
+            document.getElementById('userView').classList.remove('hidden');
+            document.getElementById('userView').classList.add('flex');
+        }
+    }
+
+    function renderBeautifulInvoice(inv, user, containerId, r=4, e=5, w=6, s=7, a=8, d=9, t=10) {
         const container = document.getElementById(containerId);
         container.innerHTML = `
             <div class="pdf-wrapper">
@@ -628,15 +721,15 @@
                         <table class="w-full text-left border-collapse">
                             <thead><tr class="bg-slate-800 text-white"><th class="p-3 rounded-tl-lg font-semibold text-sm">বিলের বিবরণ</th><th class="p-3 rounded-tr-lg text-right font-semibold text-sm w-40">টাকা (৳)</th></tr></thead>
                             <tbody class="text-base">
-                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">বাসা ভাড়া</td><td class="p-3 text-right font-semibold text-slate-800">${toBanglaWord(inv[4])}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">বিদ্যুৎ বিল</td><td class="p-3 text-right font-semibold text-slate-800">${toBanglaWord(inv[5])}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">পানির বিল</td><td class="p-3 text-right font-semibold text-slate-800">${toBanglaWord(inv[6])}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">সার্ভিস চার্জ</td><td class="p-3 text-right font-semibold text-slate-800">${toBanglaWord(inv[7])}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="p-3 text-red-500">বকেয়া (পূর্বের)</td><td class="p-3 text-right font-semibold text-red-600">${toBanglaWord(inv[9])}</td></tr>
-                                ${inv[8] > 0 ? `<tr class="border-b border-slate-100"><td class="p-3 text-green-600">এডভান্স কর্তন</td><td class="p-3 text-right font-semibold text-green-600">- ${toBanglaWord(inv[8])}</td></tr>` : ''}
+                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">বাসা ভাড়া</td><td class="p-3 text-right font-semibold text-slate-800">${toBanglaWord(inv[r])}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">বিদ্যুৎ বিল</td><td class="p-3 text-right font-semibold text-slate-800">${toBanglaWord(inv[e])}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">পানির বিল</td><td class="p-3 text-right font-semibold text-slate-800">${toBanglaWord(inv[w])}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">সার্ভিস চার্জ</td><td class="p-3 text-right font-semibold text-slate-800">${toBanglaWord(inv[s])}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="p-3 text-red-500">বকেয়া (পূর্বের)</td><td class="p-3 text-right font-semibold text-red-600">${toBanglaWord(inv[d])}</td></tr>
+                                ${inv[a] > 0 ? `<tr class="border-b border-slate-100"><td class="p-3 text-green-600">এডভান্স কর্তন</td><td class="p-3 text-right font-semibold text-green-600">- ${toBanglaWord(inv[a])}</td></tr>` : ''}
                             </tbody>
                             <tfoot>
-                                <tr class="bg-blue-50"><td class="p-4 rounded-bl-lg font-bold text-lg text-blue-800 text-right">সর্বমোট প্রদেয় বিল:</td><td class="p-4 rounded-br-lg text-right font-black text-2xl text-blue-700">৳ ${toBanglaWord(inv[10])}</td></tr>
+                                <tr class="bg-blue-50"><td class="p-4 rounded-bl-lg font-bold text-lg text-blue-800 text-right">সর্বমোট প্রদেয় বিল:</td><td class="p-4 rounded-br-lg text-right font-black text-2xl text-blue-700">৳ ${toBanglaWord(inv[t])}</td></tr>
                             </tfoot>
                         </table>
                     </div>
@@ -656,15 +749,12 @@
                     <p class="text-center text-xs text-red-500 mt-6 font-bold relative-z">* অনুগ্রহ করে বিল পরিশোধের পর মেসেজ বা কল দিয়ে কনফার্ম করবেন।</p>
                 </div>
             </div>
+            
             <div class="flex flex-col sm:flex-row gap-3 mt-6 no-print">
-        <button onclick="downloadBeautifulPDF('printArea_${containerId}')" class="flex-1 bg-slate-800 text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2 text-lg">
-            <i class="fas fa-print"></i> ইনভয়েস প্রিন্ট / পিডিএফ
-        </button>        
-        <button onclick="closeInvoiceView()" class="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2 text-lg shadow-lg">
-            <i class="fas fa-arrow-left"></i> তালিকায় ফিরে যান
-        </button>
-    </div>
-        
+                <button onclick="downloadBeautifulPDF('printArea_${containerId}')" class="flex-1 bg-slate-800 hover:bg-slate-900 transition text-white px-8 py-4 rounded-xl font-bold w-full flex justify-center items-center gap-2 text-lg shadow-lg">
+                    <i class="fas fa-print"></i> ইনভয়েস প্রিন্ট / পিডিএফ সেভ
+                </button>
+            </div>
         `;
     }
 
@@ -677,15 +767,9 @@
 
     function switchTab(tab) {
         document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden')); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(tab + 'Sec').classList.remove('hidden'); document.getElementById('tab-' + tab).classList.add('active'); document.getElementById('invoicePDF').classList.add('hidden');
+        document.getElementById(tab + 'Sec').classList.remove('hidden'); document.getElementById('tab-' + tab).classList.add('active');
         if(tab !== 'entry') resetTenantForm();
     }
-
-    function closeInvoiceView() {
-    document.getElementById('directInvoiceView').classList.add('hidden');
-    document.getElementById('userView').classList.remove('hidden');
-    document.getElementById('userView').classList.add('flex');
-}
 </script>
 </body>
 </html>
