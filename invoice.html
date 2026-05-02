@@ -314,7 +314,12 @@
         try { const d = new Date(dateStr); return isNaN(d) ? dateStr : d.toLocaleDateString('bn-BD', {day:'numeric', month:'short', year:'numeric'}); } catch(e) { return dateStr; }
     }
     
-    function logout() { window.location.href = window.location.href.split('?')[0]; }
+    function logout() { 
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userData');
+        localStorage.removeItem('lastActive');
+        window.location.href = window.location.href.split('?')[0]; 
+    }
 
     window.onload = async () => {
         const params = new URLSearchParams(window.location.search);
@@ -325,24 +330,19 @@
         if(tIdParam && monthParam && yearParam) {
             document.getElementById('choiceBox').classList.add('hidden');
             document.getElementById('loadingText').classList.remove('hidden');
-            
             await fetchData();
             document.getElementById('loadingText').classList.add('hidden');
-            
             const inv = [...allInvoices].reverse().find(row => {
                 const rowData = row.join('==='); 
                 const engYear = String(yearParam).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d));
                 return rowData.includes(tIdParam) && rowData.includes(monthParam) && (rowData.includes(yearParam) || rowData.includes(engYear));
             });
-            
             if(inv) {
                 const user = allTenants.find(t => t.some(cell => String(cell) === String(tIdParam)));
-                
                 if(user) {
                     document.getElementById('authOverlay').classList.add('hidden');
                     document.getElementById('directInvoiceView').classList.remove('hidden');
                     document.getElementById('directInvoiceView').classList.add('flex');
-                    
                     let rentIdx = 4, elecIdx = 5, waterIdx = 6, srvIdx = 7, advIdx = 8, dueIdx = 9, totalIdx = 10;
                     if(!String(inv[0]).startsWith('INV-')) { rentIdx=3; elecIdx=4; waterIdx=5; srvIdx=6; advIdx=7; dueIdx=8; totalIdx=9; }
                     renderBeautifulInvoice(inv, user, 'directInvoiceContainer', rentIdx, elecIdx, waterIdx, srvIdx, advIdx, dueIdx, totalIdx);
@@ -351,6 +351,36 @@
                 document.getElementById('directInvoiceView').classList.remove('hidden');
                 document.getElementById('directInvoiceView').classList.add('flex');
                 document.getElementById('invoiceNotFoundContainer').classList.remove('hidden');
+            }
+            return;
+        }
+
+        // Session Restoration
+        const savedRole = localStorage.getItem('userRole');
+        const lastActive = localStorage.getItem('lastActive');
+        const IDLE_LIMIT = 5 * 60 * 1000;
+
+        if (savedRole && lastActive && (Date.now() - lastActive < IDLE_LIMIT)) {
+            document.getElementById('choiceBox').classList.add('hidden');
+            document.getElementById('loadingText').classList.remove('hidden');
+            await fetchData();
+            document.getElementById('loadingText').classList.add('hidden');
+
+            if (savedRole === 'admin' || savedRole === 'manager') {
+                currentRole = savedRole;
+                document.getElementById('authOverlay').classList.add('hidden');
+                document.getElementById('adminSidebar').classList.remove('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                applyRoleRestrictions();
+            } else if (savedRole === 'user') {
+                const userData = JSON.parse(localStorage.getItem('userData'));
+                if (userData) {
+                    document.getElementById('authOverlay').classList.add('hidden');
+                    document.getElementById('userView').classList.remove('hidden');
+                    document.getElementById('userView').classList.add('flex');
+                    document.getElementById('welcomeUser').innerHTML = `স্বাগতম, <span class="text-blue-600">${userData[1]}</span> (ফ্ল্যাট: ${userData[2]})`; 
+                    renderUserInvoices(userData);
+                }
             }
         }
     };
@@ -368,19 +398,18 @@
         let inputPin = role === 'admin' ? document.getElementById('adminPin').value : document.getElementById('managerPin').value;
         let targetPin = role === 'admin' ? _aPin : _mPin;
         if(btoa(inputPin) === targetPin) {
-            currentRole = role; document.getElementById('authOverlay').classList.add('hidden');
-            document.getElementById('adminSidebar').classList.remove('hidden'); document.getElementById('mainContent').classList.remove('hidden');
-            applyRoleRestrictions(); document.getElementById('loadingText').classList.remove('hidden'); document.getElementById('authOverlay').classList.remove('hidden');
-            await fetchData(); document.getElementById('authOverlay').classList.add('hidden');
+            currentRole = role; 
+            localStorage.setItem('userRole', role);
+            updateLastActive();
+            document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('adminSidebar').classList.remove('hidden'); 
+            document.getElementById('mainContent').classList.remove('hidden');
+            applyRoleRestrictions(); 
+            document.getElementById('loadingText').classList.remove('hidden'); 
+            document.getElementById('authOverlay').classList.remove('hidden');
+            await fetchData(); 
+            document.getElementById('authOverlay').classList.add('hidden');
         } else alert("ভুল পিন!");
-    }
-
-    function applyRoleRestrictions() {
-        if(currentRole === 'manager') {
-            document.getElementById('roleBadge').classList.remove('hidden');
-            document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.admin-only-tab').forEach(el => el.classList.add('hidden'));
-        } else document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
     }
 
     async function userLogin() {
@@ -389,6 +418,9 @@
         await fetchData(); const user = allTenants.find(t => t[3] == ph && t[4] == ps);
         document.getElementById('loadingText').classList.add('hidden');
         if(user) {
+            localStorage.setItem('userRole', 'user');
+            localStorage.setItem('userData', JSON.stringify(user));
+            updateLastActive();
             document.getElementById('authOverlay').classList.add('hidden');
             document.getElementById('userView').classList.remove('hidden'); document.getElementById('userView').classList.add('flex');
             document.getElementById('welcomeUser').innerHTML = `স্বাগতম, <span class="text-blue-600">${user[1]}</span> (ফ্ল্যাট: ${user[2]})`; 
@@ -406,13 +438,14 @@
             ]);
             allTenants = await resT.json() || []; allInvoices = await resI.json() || [];
             allLoans = await resL.json() || []; allExpenses = await resE.json() || []; allBanks = await resB.json() || [];
-            if(currentRole !== '') { renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); }
+            if(localStorage.getItem('userRole') && localStorage.getItem('userRole') !== 'user') { 
+                renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); 
+            }
         } catch(e) { console.log(e); }
     }
 
     function updateFundCalculation() {
         let totalInv = 0, totalGiven = 0, totalReturned = 0, totalExp = 0, totalBank = 0;
-        
         let rIdx = 4; if(allInvoices.length > 1 && !String(allInvoices[1][0]).startsWith('INV-')) rIdx = 3;
         if(allInvoices.length > 1) allInvoices.slice(1).forEach(inv => totalInv += (Number(inv[rIdx]) || 0));
         if(allExpenses.length > 1) allExpenses.slice(1).forEach(e => totalExp += (Number(e[2]) || 0));
@@ -423,10 +456,8 @@
                 let retAmt = Number(l[7]) || 0; if(l[5] !== 'Pending' && !l[7]) retAmt = amt; totalReturned += retAmt;
             });
         }
-        
         let pendingLoan = totalGiven - totalReturned; 
         let netFund = totalInv - pendingLoan - totalExp - totalBank;
-        
         document.getElementById('mainFundAmt').innerText = toBanglaWord(netFund); 
         document.getElementById('fInc').innerText = toBanglaWord(totalInv);
         document.getElementById('fExp').innerText = toBanglaWord(totalExp); 
@@ -488,12 +519,10 @@
         const inv = allInvoices.find(x => x[0] == id); if(!inv) return;
         let rIdx = 4, eIdx = 5, wIdx = 6, sIdx = 7, aIdx = 8, dIdx = 9;
         if(!String(inv[0]).startsWith('INV-')) { rIdx=3; eIdx=4; wIdx=5; sIdx=6; aIdx=7; dIdx=8; }
-
         document.getElementById('invIdHidden').value = inv[0];
         let sel = document.getElementById('invTenant');
         for(let i=0; i<sel.options.length; i++) { if(sel.options[i].value.startsWith(inv[1] + '|')) { sel.selectedIndex = i; break; } }
         document.getElementById('invMonth').value = inv[2]; document.getElementById('invYear').value = inv[3]; document.getElementById('invRent').value = inv[rIdx]; document.getElementById('invElec').value = inv[eIdx]; document.getElementById('invWater').value = inv[wIdx]; document.getElementById('invService').value = inv[sIdx]; document.getElementById('invAdv').value = inv[aIdx]; document.getElementById('invDue').value = inv[dIdx];
-        
         document.getElementById('btnSaveInvoice').innerText = "ইনভয়েস আপডেট করুন"; switchTab('invoice'); window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -510,15 +539,11 @@
         const month = document.getElementById('invMonth').value; 
         const year = document.getElementById('invYear').value;
         const total = (Number(document.getElementById('invRent').value) + Number(document.getElementById('invElec').value||0) + Number(document.getElementById('invWater').value||0) + Number(document.getElementById('invService').value||0) + Number(document.getElementById('invDue').value||0)) - Number(document.getElementById('invAdv').value||0);
-        
         const existingId = document.getElementById('invIdHidden').value;
         const uniqueInvId = existingId || "INV-" + Date.now();
-
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveInvoice", id: uniqueInvId, tId: t[0], month, year: year, rent: document.getElementById('invRent').value, elec: document.getElementById('invElec').value||0, water: document.getElementById('invWater').value||0, service: document.getElementById('invService').value||0, adv: document.getElementById('invAdv').value||0, due: document.getElementById('invDue').value||0, total})});
-        
         const appUrl = window.location.href.split('#')[0].split('?')[0];
         const invLink = `${appUrl}?t=${t[0]}&m=${month}&y=${year}`;
-        
         const msg = `আসসালামু আলাইকুম প্রিয় ${t[2]},\nআপনার গত ${month} মাসের ইনভয়েস তৈরি হয়েছে।\nমোট বিল: ${total}/-\nবিকাশ/নগদ পেমেন্ট: ${BKASH_NO}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন।`;
         window.open(`https://wa.me/${t[1]}?text=${encodeURIComponent(msg)}`); 
         resetInvoiceForm(); fetchData(); switchTab('report');
@@ -617,10 +642,8 @@
         if(allInvoices.length < 2) return;
         let html = `<table class="w-full text-left border-collapse min-w-[600px]"><thead class="sticky top-0"><tr class="bg-slate-800 text-white text-[11px] md:text-xs"><th class="p-2 border">নাম/ফ্ল্যাট</th><th class="p-2 border">মাস</th><th class="p-2 border text-right">ভাড়া</th><th class="p-2 border text-right">বিদ্যুৎ</th><th class="p-2 border text-right">পানি</th><th class="p-2 border text-right">সার্ভিস</th><th class="p-2 border text-right">বকেয়া</th><th class="p-2 border text-right font-bold">মোট</th><th class="p-2 border text-center admin-only">অ্যাকশন</th></tr></thead><tbody>`;
         let sums = { rent:0, elec:0, water:0, service:0, due:0, total:0 };
-        
         let rIdx = 4, eIdx = 5, wIdx = 6, sIdx = 7, dIdx = 9, tIdx = 10;
         if(!String(allInvoices[1][0]).startsWith('INV-')) { rIdx=3; eIdx=4; wIdx=5; sIdx=6; dIdx=8; tIdx=9; }
-        
         allInvoices.slice(1).reverse().forEach(inv => {
             const t = allTenants.find(t => t[0] == inv[1]);
             sums.rent += Number(inv[rIdx]); sums.elec += Number(inv[eIdx]); sums.water += Number(inv[wIdx]); sums.service += Number(inv[sIdx]); sums.due += Number(inv[dIdx]); sums.total += Number(inv[tIdx]);
@@ -639,7 +662,6 @@
         let html = '';
         let tIdx = 10;
         if(allInvoices.length > 1 && !String(allInvoices[1][0]).startsWith('INV-')) tIdx = 9;
-        
         const userInvs = allInvoices.filter(inv => inv[1] === user[0]).reverse();
         userInvs.forEach(inv => {
             html += `<div onclick='showUserInvoiceModal(${JSON.stringify(inv)}, ${JSON.stringify(user)})' class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 cursor-pointer hover:shadow-md hover:border-blue-300 transition group">
@@ -656,18 +678,15 @@
         document.getElementById('userView').classList.add('hidden');
         document.getElementById('directInvoiceView').classList.remove('hidden');
         document.getElementById('directInvoiceView').classList.add('flex');
-        
         let rentIdx = 4, elecIdx = 5, waterIdx = 6, srvIdx = 7, advIdx = 8, dueIdx = 9, totalIdx = 10;
         if(!String(inv[0]).startsWith('INV-')) { rentIdx=3; elecIdx=4; waterIdx=5; srvIdx=6; advIdx=7; dueIdx=8; totalIdx=9; }
-        
         renderBeautifulInvoice(inv, user, 'directInvoiceContainer', rentIdx, elecIdx, waterIdx, srvIdx, advIdx, dueIdx, totalIdx);
     }
 
     function closeInvoiceView() {
         const params = new URLSearchParams(window.location.search);
-        if(params.get('t')) {
-            logout();
-        } else {
+        if(params.get('t')) { logout(); } 
+        else {
             document.getElementById('directInvoiceView').classList.add('hidden');
             document.getElementById('directInvoiceView').classList.remove('flex');
             document.getElementById('userView').classList.remove('hidden');
@@ -681,7 +700,6 @@
             <div class="pdf-wrapper">
                 <div class="invoice-print-area rounded-2xl border-t-8 border-t-blue-600" id="printArea_${containerId}">
                     <div class="watermark text-slate-100">স্বপ্নবিলাস</div>
-                    
                     <div class="flex flex-row justify-between items-start border-b-2 border-slate-100 pb-6 mb-6 relative-z">
                         <div class="text-left">
                             <h1 class="text-4xl font-extrabold text-blue-600 tracking-tight">স্বপ্নবিলাস</h1>
@@ -695,7 +713,6 @@
                             </div>
                         </div>
                     </div>
-                    
                     <div class="bg-slate-50 p-5 rounded-xl mb-6 border border-slate-100 flex justify-between items-center relative-z">
                         <div>
                             <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">ভাড়াটিয়ার বিবরণ</p>
@@ -706,7 +723,6 @@
                             <p class="text-sm text-slate-500 bg-white px-3 py-1 rounded border"><i class="fas fa-phone-alt mr-2 text-green-500"></i>${user[3]}</p>
                         </div>
                     </div>
-
                     <div class="mb-8 relative-z">
                         <table class="w-full text-left border-collapse">
                             <thead><tr class="bg-slate-800 text-white"><th class="p-3 rounded-tl-lg font-semibold text-sm">বিলের বিবরণ</th><th class="p-3 rounded-tr-lg text-right font-semibold text-sm w-40">টাকা (৳)</th></tr></thead>
@@ -723,7 +739,6 @@
                             </tfoot>
                         </table>
                     </div>
-
                     <div class="flex flex-row gap-4 text-sm relative-z w-full">
                         <div class="bg-pink-50 border border-pink-100 p-4 rounded-xl w-1/2">
                             <p class="font-bold text-pink-700 mb-2 border-b border-pink-200 pb-1"><i class="fas fa-mobile-alt mr-2"></i>মোবাইল ব্যাংকিং</p>
@@ -735,11 +750,9 @@
                             <p class="text-slate-700 font-semibold">${BANK_INFO}</p>
                         </div>
                     </div>
-                    
                     <p class="text-center text-xs text-red-500 mt-6 font-bold relative-z">* অনুগ্রহ করে বিল পরিশোধের পর মেসেজ বা কল দিয়ে কনফার্ম করবেন।</p>
                 </div>
             </div>
-            
             <div class="flex flex-col sm:flex-row gap-3 mt-6 no-print">
                 <button onclick="downloadBeautifulPDF('printArea_${containerId}')" class="flex-1 bg-slate-800 hover:bg-slate-900 transition text-white px-8 py-4 rounded-xl font-bold w-full flex justify-center items-center gap-2 text-lg shadow-lg">
                     <i class="fas fa-print"></i> ইনভয়েস প্রিন্ট / পিডিএফ সেভ
@@ -774,8 +787,7 @@
     setInterval(() => {
         const lastActive = localStorage.getItem('lastActive');
         if (lastActive && (Date.now() - lastActive > IDLE_LIMIT)) {
-            if (currentRole !== "" || !document.getElementById('userView').classList.contains('hidden')) {
-                localStorage.removeItem('lastActive');
+            if (localStorage.getItem('userRole')) {
                 logout();
             }
         }
