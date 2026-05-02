@@ -119,7 +119,6 @@
         <button onclick="logout()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-500 hover:text-white transition"><i class="fas fa-sign-out-alt mr-2"></i>লগআউট</button>
     </div>
 
-    <!-- Global Summary -->
     <div id="globalFundSummary" class="bg-blue-800 text-white p-5 rounded-2xl mb-8 flex flex-col xl:flex-row justify-between items-center shadow-lg">
         <div class="text-center xl:text-left mb-4 xl:mb-0 w-full xl:w-auto">
             <p class="text-blue-200 text-xs md:text-sm font-bold">রিপোর্টের মোট ইনকাম (শুধুমাত্র ভাড়া) - (খরচ + লোন + ব্যাংকে জমা)</p>
@@ -203,7 +202,6 @@
 
     <section id="loanSec" class="page-content hidden">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-8 admin-only">
-            <!-- Loan Entry -->
             <div class="bg-white p-5 md:p-8 rounded-2xl shadow-lg border h-max relative">
                 <h2 class="text-lg md:text-xl font-bold mb-6 text-orange-600">নতুন লোন এন্ট্রি / এডিট</h2>
                 <input type="hidden" id="lId">
@@ -217,7 +215,6 @@
                 </div>
             </div>
             
-            <!-- Loan Return -->
             <div class="bg-white p-5 md:p-8 rounded-2xl shadow-lg border h-max border-green-200">
                 <h2 class="text-lg md:text-xl font-bold mb-6 text-green-600">লোন ফেরত এন্ট্রি / এডিট</h2>
                 <input type="hidden" id="lrId">
@@ -286,7 +283,6 @@
     </section>
 </main>
 
-<!-- User Portal View -->
 <div id="userView" class="hidden min-h-screen p-4 sm:p-6 w-full max-w-4xl mx-auto flex-col bg-slate-50">
     <div class="flex justify-between items-center mb-6 md:mb-8 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-blue-100">
         <div>
@@ -299,10 +295,10 @@
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLUF1_YKXMA1eMMy9_imfbmd5qchUH7IaLO2jRj6iGhod4oDnnDph1ByAdE8kY-NGi-A/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzOvzhpLoJ-BM-6JkwY3R4mp6xxxssLr1mzwkUyoZILq71MUCBxg1iqq8WeTOTx43yzPA/exec";
     
-    const _aPin = "U2hvcG5vQDIwMjRA"; // Shopno@2024@
-    const _mPin = "TWFuYWdlckAyMDI0QA=="; // Manager@2024@
+    const _aPin = "U2hvcG5vQDIwMjRA";
+    const _mPin = "TWFuYWdlckAyMDI0QA==";
     
     const BKASH_NO = "01711235481";
     const NAGAD_NO = "01711235481";
@@ -528,7 +524,6 @@
         resetInvoiceForm(); fetchData(); switchTab('report');
     }
 
-    // --- Loans Section ---
     async function saveLoan() {
         const id = document.getElementById('lId').value || "L-" + Date.now();
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveLoan", id: id, person: document.getElementById('lPerson').value, amount: document.getElementById('lAmount').value, reason: document.getElementById('lReason').value, date: document.getElementById('lDate').value}) });
@@ -573,7 +568,6 @@
     function calcLoanDue() { let d = (Number(document.getElementById('lrTotal').value)||0) - (Number(document.getElementById('lrAmount').value)||0); document.getElementById('lrDue').value = d < 0 ? 0 : d; }
     async function submitLoanReturn() { let id = document.getElementById('lrId').value, retAmt = document.getElementById('lrAmount').value; if(!id || !retAmt) return alert("টাকার পরিমাণ লিখুন!"); await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "returnLoan", id: id, rAmount: retAmt, rDate: document.getElementById('lrDate').value}) }); alert("ফেরত এন্ট্রি সম্পন্ন!"); resetLoanReturnForm(); fetchData(); }
 
-    // --- Expenses ---
     function resetExpenseForm() { document.getElementById('eId').value=''; document.getElementById('exReason').value=''; document.getElementById('exAmount').value=''; document.getElementById('exDate').value=''; document.getElementById('btnSaveExpense').innerText="খরচ সেভ করুন"; }
     async function saveExpense() { const id = document.getElementById('eId').value || "E-" + Date.now(); await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveExpense", id: id, reason: document.getElementById('exReason').value, amount: document.getElementById('exAmount').value, date: document.getElementById('exDate').value}) }); alert("খরচ সেভ হয়েছে!"); resetExpenseForm(); fetchData(); }
     function editExpense(id) { const e = allExpenses.find(x => x[0] == id); if(!e) return; document.getElementById('eId').value = e[0]; document.getElementById('exReason').value = e[1]; document.getElementById('exAmount').value = e[2]; document.getElementById('exDate').value = e[3] ? e[3].split('T')[0] : ""; document.getElementById('btnSaveExpense').innerText="খরচ আপডেট করুন"; window.scrollTo({ top: 0, behavior: 'smooth' }); }
@@ -596,7 +590,6 @@
         document.getElementById('expenseList').innerHTML = html; applyRoleRestrictions();
     }
 
-    // --- Bank Deposits Tracking ---
     function resetBankForm() { document.getElementById('bkId').value=''; document.getElementById('bBankName').value=''; document.getElementById('bAccName').value=''; document.getElementById('bAccNo').value=''; document.getElementById('bAmount').value=''; document.getElementById('bDate').value=''; document.getElementById('btnSaveBank').innerText="ব্যাংকে জমা সেভ করুন"; }
     async function saveBank() { const id = document.getElementById('bkId').value || "B-" + Date.now(); await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveBank", id: id, bankName: document.getElementById('bBankName').value, accName: document.getElementById('bAccName').value, accNo: document.getElementById('bAccNo').value, amount: document.getElementById('bAmount').value, date: document.getElementById('bDate').value}) }); alert("ব্যাংকে জমা সেভ হয়েছে!"); resetBankForm(); fetchData(); }
     function editBank(id) { const b = allBanks.find(x => x[0] == id); if(!b) return; document.getElementById('bkId').value = b[0]; document.getElementById('bBankName').value = b[1]; document.getElementById('bAccName').value = b[2]; document.getElementById('bAccNo').value = b[3]; document.getElementById('bAmount').value = b[4]; document.getElementById('bDate').value = b[5] ? b[5].split('T')[0] : ""; document.getElementById('btnSaveBank').innerText="আপডেট করুন"; window.scrollTo({ top: 0, behavior: 'smooth' }); }
@@ -642,7 +635,6 @@
         updateFundCalculation(); applyRoleRestrictions();
     }
 
-    // --- User Portal & Beautiful Invoice ---
     function renderUserInvoices(user) {
         let html = '';
         let tIdx = 10;
