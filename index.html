@@ -9,10 +9,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* --- GLOBAL RESET & VARIABLES --- */
         :root {
-            --primary: #00f2ff; /* Neon Cyan */
-            --secondary: #ff0055; /* Neon Red/Pink */
+            --primary: #00f2ff; 
+            --secondary: #ff0055; 
             --dark-bg: #010101;
             --card-bg: rgba(10, 10, 10, 0.7);
             --glass-border: rgba(255, 255, 255, 0.05);
@@ -32,7 +31,6 @@
             line-height: 1.6;
         }
 
-        /* --- ADVANCED BACKGROUND & PARTICLES --- */
         #particleCanvas {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: -2; opacity: 0.3;
@@ -44,7 +42,6 @@
             z-index: -3;
         }
 
-        /* --- NAVIGATION --- */
         header {
             position: fixed; width: 100%; top: 0; z-index: 1000;
             background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px);
@@ -74,7 +71,6 @@
             animation: pulseGlow 2s infinite; font-weight: 700;
         }
 
-        /* Hamburger Styles */
         .hamburger {
             display: none;
             cursor: pointer;
@@ -83,7 +79,6 @@
             z-index: 1001;
         }
 
-        /* --- HERO SECTION --- */
         .hero {
             height: 100vh; display: flex; align-items: center; padding: 0 8%; gap: 40px;
             position: relative;
@@ -112,9 +107,8 @@
 
         .hero-visual { flex: 0.7; position: relative; z-index: 1; display: flex; justify-content: center; }
         
-        /* 3D Parallax Container */
         .hero-visualParallax {
-            perspective: 1000px; /* Essential for 3D effect */
+            perspective: 1000px;
             width: 100%; max-width: 450px;
         }
 
@@ -122,20 +116,17 @@
             width: 100%; height: 550px; border-radius: 40px; overflow: hidden;
             border: 2px solid var(--glass-border); position: relative;
             box-shadow: 0 0 50px rgba(0, 0, 0, 0.8); transition: transform 0.1s ease-out, border-color 0.5s;
-            /* Default slight tilt for design depth */
             transform: rotateY(-10deg) rotateX(5deg);
         }
         
         .hero-img-box:hover { border-color: var(--primary); box-shadow: 0 0 50px rgba(0, 212, 255, 0.3); }
         
-        /* Set Image in Hero */
         .hero-img-box img { 
             width: 100%; height: 100%; object-fit: cover; 
             filter: brightness(0.9); transition: 0.5s;
         }
         .hero-img-box:hover img { filter: brightness(1); transform: scale(1.05); }
 
-        /* --- RENTAL UNITS (Photos Only) --- */
         .rentals { padding: 120px 8%; background: #050505; position: relative; }
         .section-title { text-align: center; font-size: 3.5rem; margin-bottom: 80px; font-family: 'Syncopate', sans-serif; text-transform: uppercase; }
 
@@ -147,8 +138,8 @@
             border-radius: 35px; overflow: hidden; transition: 0.6s cubic-bezier(0.2, 1, 0.3, 1); 
             position: relative; 
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            opacity: 0; transform: translateY(50px); /* Script based reveal */
-            height: 450px; /* Fixed height for consistency */
+            opacity: 0; transform: translateY(50px); 
+            height: 450px; 
             border: 2px solid transparent;
         }
         
@@ -165,11 +156,10 @@
         
         .unit-card-photo:hover img { transform: scale(1.1); filter: brightness(1.1); }
 
-        /* RGB Glow Effect on Hover */
         .unit-card-photo::after {
             content: ''; position: absolute; inset: 0;
-            border-radius: 33px; /* Slightly less than card to align */
-            padding: 2px; /* Border thickness */
+            border-radius: 33px;
+            padding: 2px; 
             background: linear-gradient(45deg, var(--primary), var(--secondary));
             -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
             mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -180,7 +170,6 @@
         }
         .unit-card-photo:hover::after { opacity: 1; }
 
-        /* --- FOOTER --- */
         footer {
             padding: 30px 8%; text-align: center; background: #000;
             border-top: 1px solid rgba(255, 0, 85, 0.3); position: relative;
@@ -189,11 +178,9 @@
             color: #aaa; font-size: 14px; font-weight: 300; letter-spacing: 1px;
         }
 
-        /* --- KEYFRAMES --- */
         @keyframes flowText { 0% { background-position: 0%; } 100% { background-position: 200%; } }
         @keyframes pulseGlow { 0% { box-shadow: 0 0 0 0 rgba(0, 210, 255, 0.7); } 70% { box-shadow: 0 0 0 18px rgba(0, 210, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 210, 255, 0); } }
 
-        /* --- RESPONSIVE UPDATES --- */
         @media (max-width: 1024px) {
             .hamburger { display: block; }
             
@@ -297,7 +284,6 @@
     </footer>
 
     <script>
-        // Hamburger Toggle Logic
         const hamburger = document.getElementById('hamburger');
         const navLinks = document.getElementById('navLinks');
 
@@ -307,7 +293,6 @@
             hamburger.querySelector('i').classList.toggle('fa-times');
         });
 
-        // Close menu when a link is clicked
         document.querySelectorAll('.nav-links a').forEach(link => {
             link.addEventListener('click', () => {
                 navLinks.classList.remove('active');
@@ -316,7 +301,6 @@
             });
         });
 
-        // 1. Particle Background Effect
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
@@ -373,8 +357,7 @@
             canvas.height = window.innerHeight;
             initParticles();
         });
-
-        // 2. Smooth Scroll Reveal Animation
+        
         const reveals = document.querySelectorAll('.reveal, .reveal-fast');
         
         const observer = new IntersectionObserver(entries => {
@@ -393,7 +376,6 @@
             observer.observe(reveal);
         });
 
-        // 3. Mouse Move 3D Parallax effect
         const heroVisual = document.querySelector('.hero-visualParallax');
         const heroImgBox = document.getElementById('heroImgBox');
 
