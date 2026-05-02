@@ -767,6 +767,19 @@
             resetLoanReturnForm();
         }
     }
+
+    const IDLE_LIMIT = 5 * 60 * 1000;
+    function updateLastActive() { localStorage.setItem('lastActive', Date.now()); }
+    ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart'].forEach(e => window.addEventListener(e, updateLastActive));
+    setInterval(() => {
+        const lastActive = localStorage.getItem('lastActive');
+        if (lastActive && (Date.now() - lastActive > IDLE_LIMIT)) {
+            if (currentRole !== "" || !document.getElementById('userView').classList.contains('hidden')) {
+                localStorage.removeItem('lastActive');
+                logout();
+            }
+        }
+    }, 10000);
 </script>
 </body>
 </html>
