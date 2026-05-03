@@ -727,12 +727,12 @@
                         <table class="w-full text-left border-collapse">
                             <thead><tr class="bg-slate-800 text-white"><th class="p-3 rounded-tl-lg font-semibold text-sm">বিলের বিবরণ</th><th class="p-3 rounded-tr-lg text-right font-semibold text-sm w-40">টাকা (৳)</th></tr></thead>
                             <tbody class="text-base">
-                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">বাসা ভাড়া</td><td class="p-3 text-right font-semibold text-slate-800">${toBanglaWord(inv[r])}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">বিদ্যুৎ বিল</td><td class="p-3 text-right font-semibold text-slate-800">${toBanglaWord(inv[e])}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">পানির বিল</td><td class="p-3 text-right font-semibold text-slate-800">${toBanglaWord(inv[w])}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">সার্ভিস চার্জ</td><td class="p-3 text-right font-semibold text-slate-800">${toBanglaWord(inv[s])}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="p-3 text-red-500">বকেয়া (পূর্বের)</td><td class="p-3 text-right font-semibold text-red-600">${toBanglaWord(inv[d])}</td></tr>
-                                ${inv[a] > 0 ? `<tr class="border-b border-slate-100"><td class="p-3 text-green-600">এডভান্স কর্তন</td><td class="p-3 text-right font-semibold text-green-600">- ${toBanglaWord(inv[a])}</td></tr>` : ''}
+                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">বাসা ভাড়া</td><td class="p-3 text-right font-bold text-slate-800">${toBanglaWord(inv[r])}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">বিদ্যুৎ বিল</td><td class="p-3 text-right font-bold text-slate-800">${toBanglaWord(inv[e])}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">পানির বিল</td><td class="p-3 text-right font-bold text-slate-800">${toBanglaWord(inv[w])}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="p-3 text-slate-700">সার্ভিস চার্জ</td><td class="p-3 text-right font-bold text-slate-800">${toBanglaWord(inv[s])}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="p-3 text-red-500">বকেয়া (পূর্বের)</td><td class="p-3 text-right font-bold text-red-600">${toBanglaWord(inv[d])}</td></tr>
+                                ${inv[a] > 0 ? `<tr class="border-b border-slate-100"><td class="p-3 text-green-600">এডভান্স কর্তন</td><td class="p-3 text-right font-bold text-green-600">- ${toBanglaWord(inv[a])}</td></tr>` : ''}
                             </tbody>
                             <tfoot>
                                 <tr class="bg-blue-50"><td class="p-4 rounded-bl-lg font-bold text-lg text-blue-800 text-right">সর্বমোট প্রদেয় বিল:</td><td class="p-4 rounded-br-lg text-right font-black text-2xl text-blue-700">৳ ${toBanglaWord(inv[t])}</td></tr>
