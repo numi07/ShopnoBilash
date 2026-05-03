@@ -1,3 +1,5 @@
+--- START OF FILE Paste May 03, 2026 - 9:01PM ---
+
 <!DOCTYPE html>
 <html lang="bn">
 <head>
@@ -595,7 +597,7 @@
 
     function resetExpenseForm() { document.getElementById('eId').value=''; document.getElementById('exReason').value=''; document.getElementById('exAmount').value=''; document.getElementById('exDate').value=''; document.getElementById('btnSaveExpense').innerText="খরচ সেভ করুন"; }
     async function saveExpense() { const id = document.getElementById('eId').value || "E-" + Date.now(); await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveExpense", id: id, reason: document.getElementById('exReason').value, amount: document.getElementById('exAmount').value, date: document.getElementById('exDate').value}) }); alert("খরচ সেভ হয়েছে!"); resetExpenseForm(); fetchData(); }
-    function editExpense(id) { const e = allExpenses.find(x => x[0] == id); if(!e) return; document.getElementById('eId').value = e[0]; document.getElementById('exReason').value = e[1]; document.getElementById('exAmount').value = e[2]; document.getElementById('exDate').value = e[3] ? e[3].split('T')[0] : ""; document.getElementById('btnSaveExpense').innerText="খরচ আপডেট করুন"; window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function editExpense(id) { const e = allExpenses.find(x => x[0] == id); if(!e) return; document.getElementById('eId').value = e[0]; document.getElementById('exReason').value = e[2]; document.getElementById('exAmount').value = e[2]; document.getElementById('exDate').value = e[3] ? e[3].split('T')[0] : ""; document.getElementById('btnSaveExpense').innerText="খরচ আপডেট করুন"; window.scrollTo({ top: 0, behavior: 'smooth' }); }
     async function deleteExpense(id) { if(confirm("খরচ ডিলিট করতে চান?")) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "deleteExpense", id: id}) }); alert("ডিলিট সম্পন্ন!"); fetchData(); } }
     
     function renderExpenses() {
@@ -710,6 +712,7 @@
                             <div class="mt-2 bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg inline-block text-center">
                                 <p class="text-xs text-slate-500">বিলের মাস</p>
                                 <p class="text-lg font-bold text-blue-700">${inv[2]} ${inv[3]}</p>
+                                <p class="text-[11px] font-bold text-white bg-red-600 px-2 py-0.5 rounded mt-1 shadow-sm">১০ ${inv[2]} বিল পরিশোধের শেষ তারিখ</p>
                             </div>
                         </div>
                     </div>
