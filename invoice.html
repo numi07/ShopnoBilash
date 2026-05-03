@@ -354,6 +354,7 @@
             }
             return;
         }
+
         const savedRole = localStorage.getItem('userRole');
         const lastActive = localStorage.getItem('lastActive');
         const IDLE_LIMIT = 5 * 60 * 1000;
@@ -405,7 +406,7 @@
             applyRoleRestrictions(); 
             document.getElementById('loadingText').classList.remove('hidden'); 
             document.getElementById('authOverlay').classList.remove('hidden');
-            await fetchData(); 
+            await fetchData(true); 
             document.getElementById('authOverlay').classList.add('hidden');
         } else alert("ভুল পিন!");
     }
@@ -413,7 +414,7 @@
     async function userLogin() {
         const ph = document.getElementById('userPhone').value; const ps = document.getElementById('userPass').value;
         document.getElementById('loadingText').classList.remove('hidden'); document.getElementById('userLoginForm').classList.add('hidden');
-        await fetchData(); const user = allTenants.find(t => t[3] == ph && t[4] == ps);
+        await fetchData(true); const user = allTenants.find(t => t[3] == ph && t[4] == ps);
         document.getElementById('loadingText').classList.add('hidden');
         if(user) {
             localStorage.setItem('userRole', 'user');
@@ -426,17 +427,60 @@
         } else { alert("ভুল তথ্য!"); location.reload(); }
     }
 
-    async function fetchData() {
+    async function fetchData(force = false) {
         try {
             const cacheBuster = "&_=" + new Date().getTime();
-            const [resT, resI, resL, resE, resB] = await Promise.all([
-                fetch(SCRIPT_URL + "?action=getTenants" + cacheBuster), fetch(SCRIPT_URL + "?action=getInvoices" + cacheBuster),
-                fetch(SCRIPT_URL + "?action=getLoans" + cacheBuster).catch(()=>({json:()=>[]})), fetch(SCRIPT_URL + "?action=getExpenses" + cacheBuster).catch(()=>({json:()=>[]})),
-                fetch(SCRIPT_URL + "?action=getBanks" + cacheBuster).catch(()=>({json:()=>[]}))
-            ]);
-            allTenants = await resT.json() || []; allInvoices = await resI.json() || [];
-            allLoans = await resL.json() || []; allExpenses = await resE.json() || []; allBanks = await resB.json() || [];
-            if(localStorage.getItem('userRole') && localStorage.getItem('userRole') !== 'user') { 
+            const params = new URLSearchParams(window.location.search);
+            const isDirectInvoice = params.get('t') && params.get('m') && params.get('y');
+            const role = localStorage.getItem('userRole');
+            
+            const now = Date.now();
+            const cacheTime = 60000;
+            
+            if (!force && localStorage.getItem('cache_time') && (now - localStorage.getItem('cache_time') < cacheTime)) {
+                allTenants = JSON.parse(localStorage.getItem('cache_tenants') || "[]");
+                allInvoices = JSON.parse(localStorage.getItem('cache_invoices') || "[]");
+                allLoans = JSON.parse(localStorage.getItem('cache_loans') || "[]");
+                allExpenses = JSON.parse(localStorage.getItem('cache_expenses') || "[]");
+                allBanks = JSON.parse(localStorage.getItem('cache_banks') || "[]");
+                
+                if(role && role !== 'user') { 
+                    renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); 
+                }
+                return;
+            }
+
+            if (isDirectInvoice || role === 'user') {
+                const [resT, resI] = await Promise.all([
+                    fetch(SCRIPT_URL + "?action=getTenants" + cacheBuster),
+                    fetch(SCRIPT_URL + "?action=getInvoices" + cacheBuster)
+                ]);
+                allTenants = await resT.json() || [];
+                allInvoices = await resI.json() || [];
+                allLoans = []; allExpenses = []; allBanks = [];
+            } else {
+                const [resT, resI, resL, resE, resB] = await Promise.all([
+                    fetch(SCRIPT_URL + "?action=getTenants" + cacheBuster),
+                    fetch(SCRIPT_URL + "?action=getInvoices" + cacheBuster),
+                    fetch(SCRIPT_URL + "?action=getLoans" + cacheBuster).catch(()=>({json:()=>[]})),
+                    fetch(SCRIPT_URL + "?action=getExpenses" + cacheBuster).catch(()=>({json:()=>[]})),
+                    fetch(SCRIPT_URL + "?action=getBanks" + cacheBuster).catch(()=>({json:()=>[]}))
+                ]);
+                allTenants = await resT.json() || [];
+                allInvoices = await resI.json() || [];
+                allLoans = await resL.json() || [];
+                allExpenses = await resE.json() || [];
+                allBanks = await resB.json() || [];
+            }
+
+            localStorage.setItem('cache_tenants', JSON.stringify(allTenants));
+            localStorage.setItem('cache_invoices', JSON.stringify(allInvoices));
+            localStorage.setItem('cache_loans', JSON.stringify(allLoans));
+            localStorage.setItem('cache_expenses', JSON.stringify(allExpenses));
+            localStorage.setItem('cache_banks', JSON.stringify(allBanks));
+            localStorage.setItem('cache_time', now);
+
+            if(role && role !== 'user') { 
                 renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); 
             }
         } catch(e) { console.log(e); }
@@ -481,8 +525,8 @@
         });
         listDiv.innerHTML = html; applyRoleRestrictions();
     }
-    async function saveTenant(e) { e.preventDefault(); const data = { action: "saveTenant", id: document.getElementById('tId').value || "T-" + Date.now(), name: document.getElementById('tName').value, flat: document.getElementById('tFlat').value, phone: document.getElementById('tPhone').value, pass: document.getElementById('tPass').value, join: document.getElementById('tJoin').value, exit: document.getElementById('tExit').value, status: document.getElementById('tStatus').value }; await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) }); alert("তথ্য সংরক্ষিত!"); fetchData(); switchTab('dash'); }
-    async function deleteTenant(id) { if(confirm("আপনি কি নিশ্চিতভাবে এই ডাটা ডিলিট করতে চান?")) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "deleteTenant", id: id}) }); alert("ডিলিট রিকোয়েস্ট পাঠানো হয়েছে!"); fetchData(); } }
+    async function saveTenant(e) { e.preventDefault(); const data = { action: "saveTenant", id: document.getElementById('tId').value || "T-" + Date.now(), name: document.getElementById('tName').value, flat: document.getElementById('tFlat').value, phone: document.getElementById('tPhone').value, pass: document.getElementById('tPass').value, join: document.getElementById('tJoin').value, exit: document.getElementById('tExit').value, status: document.getElementById('tStatus').value }; await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) }); alert("তথ্য সংরক্ষিত!"); fetchData(true); switchTab('dash'); }
+    async function deleteTenant(id) { if(confirm("আপনি কি নিশ্চিতভাবে এই ডাটা ডিলিট করতে চান?")) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "deleteTenant", id: id}) }); alert("ডিলিট রিকোয়েস্ট পাঠানো হয়েছে!"); fetchData(true); } }
     function editTenant(id) { const t = allTenants.find(x => x[0] == id); if(!t) return; document.getElementById('tId').value = t[0]; document.getElementById('tName').value = t[1]; document.getElementById('tFlat').value = t[2]; document.getElementById('tPhone').value = t[3]; document.getElementById('tPass').value = t[4]; document.getElementById('tJoin').value = t[5] ? t[5].split('T')[0] : ""; document.getElementById('tExit').value = t[6] ? t[6].split('T')[0] : ""; document.getElementById('tStatus').value = t[7]; document.getElementById('formTitle').innerText = "তথ্য এডিট করুন"; document.getElementById('saveBtn').innerText = "আপডেট করুন"; handleFlatSelection(t[2]); switchTab('entry'); }
     function resetTenantForm() { document.getElementById('tenantForm').reset(); document.getElementById('tId').value = ""; document.getElementById('formFlatStatus').classList.add('hidden'); document.getElementById('allTenantList').innerHTML = ''; }
     function autoInactive(el) { if(el.value) document.getElementById('tStatus').value = "Inactive"; }
@@ -527,7 +571,7 @@
     async function deleteInvoiceFromTable(id) {
         if(confirm("ইনভয়েসটি ডিলিট করতে চান?")) {
             await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "deleteInvoice", id: id}) });
-            alert("ডিলিট সম্পন্ন!"); fetchData();
+            alert("ডিলিট সম্পন্ন!"); fetchData(true);
         }
     }
 
@@ -544,17 +588,17 @@
         const invLink = `${appUrl}?t=${t[0]}&m=${month}&y=${year}`;
         const msg = `আসসালামু আলাইকুম প্রিয় ${t[2]},\nআপনার গত ${month} মাসের ইনভয়েস তৈরি হয়েছে।\nমোট বিল: ${total}/-\nবিকাশ/নগদ পেমেন্ট: ${BKASH_NO}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন।`;
         window.open(`https://wa.me/${t[1]}?text=${encodeURIComponent(msg)}`); 
-        resetInvoiceForm(); fetchData(); switchTab('report');
+        resetInvoiceForm(); fetchData(true); switchTab('report');
     }
 
     async function saveLoan() {
         const id = document.getElementById('lId').value || "L-" + Date.now();
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveLoan", id: id, person: document.getElementById('lPerson').value, amount: document.getElementById('lAmount').value, reason: document.getElementById('lReason').value, date: document.getElementById('lDate').value}) });
-        alert("লোন সেভ হয়েছে!"); resetLoanForm(); fetchData();
+        alert("লোন সেভ হয়েছে!"); resetLoanForm(); fetchData(true);
     }
     function resetLoanForm() { document.getElementById('lId').value = ''; document.getElementById('lPerson').value = ''; document.getElementById('lAmount').value = ''; document.getElementById('lReason').value = ''; document.getElementById('lDate').value = ''; document.getElementById('btnSaveLoan').innerText = "লোন সেভ করুন"; }
     function editLoan(id) { const l = allLoans.find(x => x[0] == id); if(!l) return; document.getElementById('lId').value = l[0]; document.getElementById('lPerson').value = l[1]; document.getElementById('lAmount').value = l[2]; document.getElementById('lReason').value = l[3]; document.getElementById('lDate').value = l[4] ? l[4].split('T')[0] : ""; document.getElementById('btnSaveLoan').innerText = "লোন আপডেট করুন"; window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    async function deleteLoan(id) { if(confirm("এই লোন রেকর্ডটি সম্পূর্ণ ডিলিট করতে চান?")) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "deleteLoan", id: id}) }); alert("ডিলিট সম্পন্ন!"); fetchData(); } }
+    async function deleteLoan(id) { if(confirm("এই লোন রেকর্ডটি সম্পূর্ণ ডিলিট করতে চান?")) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "deleteLoan", id: id}) }); alert("ডিলিট সম্পন্ন!"); fetchData(true); } }
 
     function renderLoans() {
         if(allLoans.length < 2) { document.getElementById('loanList').innerHTML = ""; return; }
@@ -587,14 +631,14 @@
     function resetLoanReturnForm() { document.getElementById('lrId').value = ''; document.getElementById('lrName').value = ''; document.getElementById('lrTotal').value = ''; document.getElementById('lrAmount').value = ''; document.getElementById('lrDue').value = ''; document.getElementById('btnSaveLoanReturn').innerText = "ফেরত জমা দিন"; }
     function openLoanReturnForm(id) { const loan = allLoans.find(l => l[0] == id); if(!loan) return; let given = Number(loan[2]), retAmt = Number(loan[7]) || 0; if(loan[5] !== 'Pending' && !loan[7]) retAmt = given; let due = given - retAmt; document.getElementById('lrId').value = loan[0]; document.getElementById('lrName').value = loan[1]; document.getElementById('lrTotal').value = due; document.getElementById('lrAmount').value = ''; document.getElementById('lrDue').value = due; document.getElementById('lrDate').value = new Date().toISOString().split('T')[0]; document.getElementById('btnSaveLoanReturn').innerText = "ফেরত জমা দিন"; window.scrollTo({ top: 0, behavior: 'smooth' }); }
     function editLoanReturn(id) { const loan = allLoans.find(l => l[0] == id); if(!loan) return; let given = Number(loan[2]), retAmt = Number(loan[7]) || 0; let totalDueBeforeReturn = given; document.getElementById('lrId').value = loan[0]; document.getElementById('lrName').value = loan[1]; document.getElementById('lrTotal').value = totalDueBeforeReturn; document.getElementById('lrAmount').value = retAmt; document.getElementById('lrDue').value = totalDueBeforeReturn - retAmt; document.getElementById('lrDate').value = loan[6] ? loan[6].split('T')[0] : new Date().toISOString().split('T')[0]; document.getElementById('btnSaveLoanReturn').innerText = "রিটার্ন আপডেট করুন"; window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    async function deleteLoanReturn(id) { if(confirm("লোন রিটার্ন হিস্ট্রি ডিলিট করতে চান? (এটি বকেয়া বাড়িয়ে দিবে)")) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "returnLoan", id: id, rAmount: 0, rDate: ""}) }); alert("রিটার্ন ডিলিট সম্পন্ন!"); resetLoanReturnForm(); fetchData(); } }
+    async function deleteLoanReturn(id) { if(confirm("লোন রিটার্ন হিস্ট্রি ডিলিট করতে চান? (এটি বকেয়া বাড়িয়ে দিবে)")) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "returnLoan", id: id, rAmount: 0, rDate: ""}) }); alert("রিটার্ন ডিলিট সম্পন্ন!"); resetLoanReturnForm(); fetchData(true); } }
     function calcLoanDue() { let d = (Number(document.getElementById('lrTotal').value)||0) - (Number(document.getElementById('lrAmount').value)||0); document.getElementById('lrDue').value = d < 0 ? 0 : d; }
-    async function submitLoanReturn() { let id = document.getElementById('lrId').value, retAmt = document.getElementById('lrAmount').value; if(!id || !retAmt) return alert("টাকার পরিমাণ লিখুন!"); await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "returnLoan", id: id, rAmount: retAmt, rDate: document.getElementById('lrDate').value}) }); alert("ফেরত এন্ট্রি সম্পন্ন!"); resetLoanReturnForm(); fetchData(); }
+    async function submitLoanReturn() { let id = document.getElementById('lrId').value, retAmt = document.getElementById('lrAmount').value; if(!id || !retAmt) return alert("টাকার পরিমাণ লিখুন!"); await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "returnLoan", id: id, rAmount: retAmt, rDate: document.getElementById('lrDate').value}) }); alert("ফেরত এন্ট্রি সম্পন্ন!"); resetLoanReturnForm(); fetchData(true); }
 
     function resetExpenseForm() { document.getElementById('eId').value=''; document.getElementById('exReason').value=''; document.getElementById('exAmount').value=''; document.getElementById('exDate').value=''; document.getElementById('btnSaveExpense').innerText="খরচ সেভ করুন"; }
-    async function saveExpense() { const id = document.getElementById('eId').value || "E-" + Date.now(); await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveExpense", id: id, reason: document.getElementById('exReason').value, amount: document.getElementById('exAmount').value, date: document.getElementById('exDate').value}) }); alert("খরচ সেভ হয়েছে!"); resetExpenseForm(); fetchData(); }
-    function editExpense(id) { const e = allExpenses.find(x => x[0] == id); if(!e) return; document.getElementById('eId').value = e[0]; document.getElementById('exReason').value = e[2]; document.getElementById('exAmount').value = e[2]; document.getElementById('exDate').value = e[3] ? e[3].split('T')[0] : ""; document.getElementById('btnSaveExpense').innerText="খরচ আপডেট করুন"; window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    async function deleteExpense(id) { if(confirm("খরচ ডিলিট করতে চান?")) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "deleteExpense", id: id}) }); alert("ডিলিট সম্পন্ন!"); fetchData(); } }
+    async function saveExpense() { const id = document.getElementById('eId').value || "E-" + Date.now(); await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveExpense", id: id, reason: document.getElementById('exReason').value, amount: document.getElementById('exAmount').value, date: document.getElementById('exDate').value}) }); alert("খরচ সেভ হয়েছে!"); resetExpenseForm(); fetchData(true); }
+    function editExpense(id) { const e = allExpenses.find(x => x[0] == id); if(!e) return; document.getElementById('eId').value = e[0]; document.getElementById('exReason').value = e[1]; document.getElementById('exAmount').value = e[2]; document.getElementById('exDate').value = e[3] ? e[3].split('T')[0] : ""; document.getElementById('btnSaveExpense').innerText="খরচ আপডেট করুন"; window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    async function deleteExpense(id) { if(confirm("খরচ ডিলিট করতে চান?")) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "deleteExpense", id: id}) }); alert("ডিলিট সম্পন্ন!"); fetchData(true); } }
     
     function renderExpenses() {
         if(allExpenses.length < 2) { document.getElementById('expenseList').innerHTML = ""; return; } 
@@ -614,9 +658,9 @@
     }
 
     function resetBankForm() { document.getElementById('bkId').value=''; document.getElementById('bBankName').value=''; document.getElementById('bAccName').value=''; document.getElementById('bAccNo').value=''; document.getElementById('bAmount').value=''; document.getElementById('bDate').value=''; document.getElementById('btnSaveBank').innerText="ব্যাংকে জমা সেভ করুন"; }
-    async function saveBank() { const id = document.getElementById('bkId').value || "B-" + Date.now(); await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveBank", id: id, bankName: document.getElementById('bBankName').value, accName: document.getElementById('bAccName').value, accNo: document.getElementById('bAccNo').value, amount: document.getElementById('bAmount').value, date: document.getElementById('bDate').value}) }); alert("ব্যাংকে জমা সেভ হয়েছে!"); resetBankForm(); fetchData(); }
+    async function saveBank() { const id = document.getElementById('bkId').value || "B-" + Date.now(); await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveBank", id: id, bankName: document.getElementById('bBankName').value, accName: document.getElementById('bAccName').value, accNo: document.getElementById('bAccNo').value, amount: document.getElementById('bAmount').value, date: document.getElementById('bDate').value}) }); alert("ব্যাংকে জমা সেভ হয়েছে!"); resetBankForm(); fetchData(true); }
     function editBank(id) { const b = allBanks.find(x => x[0] == id); if(!b) return; document.getElementById('bkId').value = b[0]; document.getElementById('bBankName').value = b[1]; document.getElementById('bAccName').value = b[2]; document.getElementById('bAccNo').value = b[3]; document.getElementById('bAmount').value = b[4]; document.getElementById('bDate').value = b[5] ? b[5].split('T')[0] : ""; document.getElementById('btnSaveBank').innerText="আপডেট করুন"; window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    async function deleteBank(id) { if(confirm("ব্যাংক রেকর্ড ডিলিট করতে চান?")) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "deleteBank", id: id}) }); alert("ডিলিট সম্পন্ন!"); fetchData(); } }
+    async function deleteBank(id) { if(confirm("ব্যাংক রেকর্ড ডিলিট করতে চান?")) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "deleteBank", id: id}) }); alert("ডিলিট সম্পন্ন!"); fetchData(true); } }
     
     function renderBanks() {
         if(allBanks.length < 2) { document.getElementById('bankList').innerHTML = ""; return; } 
@@ -693,6 +737,14 @@
     }
 
     function renderBeautifulInvoice(inv, user, containerId, r=4, e=5, w=6, s=7, a=8, d=9, t=10) {
+        const monthsBn = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
+        let cIdx = monthsBn.indexOf(inv[2]);
+        let nIdx = (cIdx + 1) % 12;
+        let cYearEng = Number(String(inv[3]).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d)));
+        let nYearEng = (cIdx === 11) ? cYearEng + 1 : cYearEng;
+        let nextMonthBn = monthsBn[nIdx];
+        let nextYearBn = toBanglaWord(nYearEng);
+
         const container = document.getElementById(containerId);
         container.innerHTML = `
             <div class="pdf-wrapper">
@@ -708,7 +760,7 @@
                             <div class="mt-2 bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg inline-block text-center">
                                 <p class="text-xs text-slate-500">বিলের মাস</p>
                                 <p class="text-lg font-bold text-blue-700">${inv[2]} ${inv[3]}</p>
-                                <p class="text-[11px] font-bold text-white bg-red-600 px-2 py-0.5 rounded mt-1 shadow-sm">১০ ${inv[2]} বিল পরিশোধের শেষ তারিখ</p>
+                                <p class="text-[11px] font-bold text-white bg-red-600 px-3 py-1 rounded-md mt-1 shadow-md border border-red-400">১০ ${nextMonthBn} ${nextYearBn} বিল পরিশোধের শেষ তারিখ</p>
                             </div>
                         </div>
                     </div>
