@@ -586,7 +586,7 @@
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveInvoice", id: uniqueInvId, tId: t[0], month, year: year, rent: document.getElementById('invRent').value, elec: document.getElementById('invElec').value||0, water: document.getElementById('invWater').value||0, service: document.getElementById('invService').value||0, adv: document.getElementById('invAdv').value||0, due: document.getElementById('invDue').value||0, total})});
         const appUrl = window.location.href.split('#')[0].split('?')[0];
         const invLink = `${appUrl}?t=${t[0]}&m=${month}&y=${year}`;
-        const msg = `আসসালামু আলাইকুম প্রিয় ${t[2]},\nআপনার গত ${month} মাসের ইনভয়েস তৈরি হয়েছে।\nমোট বিল: ${total}/-\nবিকাশ/নগদ পেমেন্ট: ${BKASH_NO}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন।`;
+        const msg = `আসসালামু আলাইকুম প্রিয় ${t[2]},\nআপনার গত ${month} মাসের ইনভয়েস তৈরি হয়েছে।\nমোট বিল: ${total}/-\nবিকাশ/নগদ পেমেন্ট: ${BKASH_NO}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন। "পানির সঠিক ব্যবহার নিশ্চিত করুন, অপচয় রোধে সচেতন হোন।" ধন্যবাদ।`;
         window.open(`https://wa.me/${t[1]}?text=${encodeURIComponent(msg)}`); 
         resetInvoiceForm(); fetchData(true); switchTab('report');
     }
@@ -801,6 +801,7 @@
                             <p class="text-slate-700 font-semibold">${BANK_INFO}</p>
                         </div>
                     </div>
+                    <p class="text-center text-xs text-red-500 mt-6 font-bold relative-z">* পানির সঠিক ব্যবহার নিশ্চিত করুন, অপচয় রোধে সচেতন হোন।</p>
                     <p class="text-center text-xs text-red-500 mt-6 font-bold relative-z">* অনুগ্রহ করে বিল পরিশোধের পর মেসেজ বা কল দিয়ে কনফার্ম করবেন।</p>
                 </div>
             </div>
