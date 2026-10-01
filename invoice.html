@@ -7,21 +7,31 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;600;700&display=swap');
-        body { font-family: 'Hind Siliguri', sans-serif; background: #f1f5f9; }
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Hind Siliguri', sans-serif; background: #f1f5f9; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         .sidebar { background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); }
         .nav-btn { transition: 0.3s; color: #94a3b8; cursor: pointer; border-left: 4px solid transparent; }
         .nav-btn:hover, .nav-btn.active { background: #334155; color: #fff; border-left: 4px solid #3b82f6; }
         .hidden { display: none !important; }
         
         .pdf-wrapper { overflow-x: auto; max-width: 100%; width: 100%; }
-        .invoice-print-area { width: 100%; max-width: 800px; background: white; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); position: relative; margin: 0 auto; border-radius: 1rem; overflow: hidden; }
+        .invoice-print-area { width: 100%; max-width: 800px; background: white; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); position: relative; margin: 0 auto; border-radius: 1rem; overflow: hidden; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: clamp(40px, 8vw, 80px); opacity: 0.03; font-weight: bold; white-space: nowrap; pointer-events: none; z-index: 0; }
         .relative-z { position: relative; z-index: 10; }
         
+        /* সংখ্যা স্পষ্টভাবে পড়ার জন্য বিশেষ রেন্ডারিং */
+        .bn-num { font-feature-settings: "locl" 1; letter-spacing: 0.02em; font-weight: 600; }
+
         @media print {
+            html, body {
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+                overflow: hidden !important;
+            }
             body * { visibility: hidden !important; }
             .print-area, .print-area * { visibility: visible !important; }
             .print-area { 
@@ -33,20 +43,23 @@
                 min-width: 100% !important; 
                 box-shadow: none !important; 
                 border: none !important; 
-                padding: 15px 25px !important; 
+                padding: 10px 20px !important; 
                 margin: 0 !important; 
                 border-radius: 0 !important; 
                 page-break-inside: avoid !important;
                 page-break-after: avoid !important;
                 page-break-before: avoid !important;
+                break-inside: avoid !important;
+                transform: scale(0.96);
+                transform-origin: top center;
             }
             .no-print { display: none !important; }
             @page { 
                 size: A4 portrait; 
-                margin: 6mm 8mm; 
+                margin: 4mm 6mm !important; 
             }
         }
-        @media (min-width: 768px) { .invoice-print-area { padding: 40px; } }
+        @media (min-width: 768px) { .invoice-print-area { padding: 32px 36px; } }
     </style>
     
     <script>
@@ -140,13 +153,13 @@
     <div id="globalFundSummary" class="bg-blue-800 text-white p-5 rounded-2xl mb-8 flex flex-col xl:flex-row justify-between items-center shadow-lg">
         <div class="text-center xl:text-left mb-4 xl:mb-0 w-full xl:w-auto">
             <p class="text-blue-200 text-xs md:text-sm font-bold">রিপোর্টের মোট ইনকাম (শুধুমাত্র ভাড়া) - (খরচ + লোন + ব্যাংকে জমা)</p>
-            <h2 class="text-2xl md:text-4xl font-bold mt-1">ক্যাশ ফান্ড: <span id="mainFundAmt">০</span>/-</h2>
+            <h2 class="text-2xl md:text-4xl font-bold mt-1">ক্যাশ ফান্ড: <span id="mainFundAmt" class="bn-num">০</span>/-</h2>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs md:text-sm text-blue-100 w-full xl:w-auto text-center">
-            <div class="bg-blue-900 px-3 py-3 rounded-lg">মোট ইনকাম<br><b class="text-white text-sm md:text-base" id="fInc">০</b></div>
-            <div class="bg-blue-900 px-3 py-3 rounded-lg">মোট খরচ<br><b class="text-white text-sm md:text-base" id="fExp">০</b></div>
-            <div class="bg-blue-900 px-3 py-3 rounded-lg">বকেয়া লোন<br><b class="text-white text-sm md:text-base text-orange-300" id="fLoan">০</b></div>
-            <div class="bg-blue-900 px-3 py-3 rounded-lg">ব্যাংকে জমা<br><b class="text-white text-sm md:text-base text-green-300" id="fBank">০</b></div>
+            <div class="bg-blue-900 px-3 py-3 rounded-lg">মোট ইনকাম<br><b class="text-white text-sm md:text-base bn-num" id="fInc">০</b></div>
+            <div class="bg-blue-900 px-3 py-3 rounded-lg">মোট খরচ<br><b class="text-white text-sm md:text-base bn-num" id="fExp">০</b></div>
+            <div class="bg-blue-900 px-3 py-3 rounded-lg">বকেয়া লোন<br><b class="text-white text-sm md:text-base text-orange-300 bn-num" id="fLoan">০</b></div>
+            <div class="bg-blue-900 px-3 py-3 rounded-lg">ব্যাংকে জমা<br><b class="text-white text-sm md:text-base text-green-300 bn-num" id="fBank">০</b></div>
         </div>
     </div>
 
@@ -339,7 +352,9 @@
     const FLATS_LIST = ["A-1", "A-2", "A-3", "A-4", "B-1", "B-2", "B-3", "B-4", "C-1", "C-2", "C-3", "D-1", "D-2", "G-1"];
     const BN_MONTHS = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
 
-    function toBanglaWord(n) { return String(n).replace(/\d/g, d => ['০','১','২','৩','৪','৫','৬','৭','৮','৯'][d]); }
+    function toBanglaWord(n) { 
+        return String(n).replace(/\d/g, d => ['০','১','২','৩','৪','৫','৬','৭','৮','৯'][d]); 
+    }
     function toEngDigits(str) { return String(str).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d)); }
     
     function formatDate(dateStr) {
@@ -674,7 +689,7 @@
         let html = '';
         filtered.slice(0).reverse().forEach(t => {
             html += `<div class="flex flex-col sm:flex-row justify-between sm:items-center border-b p-3 hover:bg-gray-50 gap-3 sm:gap-0">
-                <div><span class="font-bold ${t[7]==='Active'?'text-green-600':'text-slate-500'}">${t[1]}</span> <span class="text-[10px] ml-2 px-2 py-0.5 rounded ${t[7]==='Active'?'bg-green-100 text-green-700':'bg-slate-100 text-slate-500'}">${t[7]}</span><p class="text-xs text-slate-400 mt-1">${t[3]} | জয়েন: ${formatDate(t[5])}</p></div>
+                <div><span class="font-bold ${t[7]==='Active'?'text-green-600':'text-slate-500'}">${t[1]}</span> <span class="text-[10px] ml-2 px-2 py-0.5 rounded ${t[7]==='Active'?'bg-green-100 text-green-700':'bg-slate-100 text-slate-500'}">${t[7]}</span><p class="text-xs text-slate-400 mt-1">${toBanglaWord(t[3])} | জয়েন: ${formatDate(t[5])}</p></div>
                 <div class="flex gap-4 justify-end sm:justify-start admin-only">
                     <button onclick="editTenant('${t[0]}')" class="text-blue-500 bg-blue-50 px-3 py-1 rounded text-sm"><i class="fas fa-edit"></i></button>
                     <button onclick="deleteTenant('${t[0]}')" class="text-red-500 bg-red-50 px-3 py-1 rounded text-sm"><i class="fas fa-trash-alt"></i></button>
@@ -777,7 +792,7 @@
                 <p class="text-slate-500 font-medium text-xs md:text-sm mt-2">${t ? t[1] : 'ফাঁকা'}</p></div>`;
         });
         document.getElementById('flatGrid').innerHTML = html;
-        document.getElementById('dashCounter').innerHTML = `<div class="bg-blue-100 text-blue-700 px-3 md:px-4 py-2 rounded-lg font-bold">মোট: ${toBanglaWord(FLATS_LIST.length)}</div><div class="bg-green-100 text-green-700 px-3 md:px-4 py-2 rounded-lg font-bold">ভাড়া: ${toBanglaWord(activeCount)}</div><div class="bg-slate-100 text-slate-700 px-3 md:px-4 py-2 rounded-lg font-bold">খালি: ${toBanglaWord(FLATS_LIST.length - activeCount)}</div>`;
+        document.getElementById('dashCounter').innerHTML = `<div class="bg-blue-100 text-blue-700 px-3 md:px-4 py-2 rounded-lg font-bold">মোট: <span class="bn-num">${toBanglaWord(FLATS_LIST.length)}</span></div><div class="bg-green-100 text-green-700 px-3 md:px-4 py-2 rounded-lg font-bold">ভাড়া: <span class="bn-num">${toBanglaWord(activeCount)}</span></div><div class="bg-slate-100 text-slate-700 px-3 md:px-4 py-2 rounded-lg font-bold">খালি: <span class="bn-num">${toBanglaWord(FLATS_LIST.length - activeCount)}</span></div>`;
     }
 
     function renderInvoiceSelect() {
@@ -792,7 +807,7 @@
         });
 
         activeTenants.forEach(t => { 
-            opt += `<option value="${t[0]}|${t[3]}|${t[1]}">${t[2]} - ${t[1]} (${t[3]})</option>`; 
+            opt += `<option value="${t[0]}|${t[3]}|${t[1]}">${t[2]} - ${t[1]} (${toBanglaWord(t[3])})</option>`; 
         });
         document.getElementById('invTenant').innerHTML = opt;
     }
@@ -839,7 +854,7 @@
         if(!matched) {
             const tenantObj = allTenants.find(t => String(t[0]).trim() === tenantId);
             if(tenantObj) {
-                const opt = new Option(`${tenantObj[2]} - ${tenantObj[1]} (${tenantObj[3]})`, `${tenantObj[0]}|${tenantObj[3]}|${tenantObj[1]}`, true, true);
+                const opt = new Option(`${tenantObj[2]} - ${tenantObj[1]} (${toBanglaWord(tenantObj[3])})`, `${tenantObj[0]}|${tenantObj[3]}|${tenantObj[1]}`, true, true);
                 sel.add(opt);
             }
         }
@@ -896,7 +911,7 @@
         
         const appUrl = window.location.href.split('#')[0].split('?')[0];
         const invLink = `${appUrl}?t=${t[0]}&m=${month}&y=${year}`;
-        const msg = `আসসালামু আলাইকুম প্রিয় ${t[1]},\nআপনার ${month} ${year} মাসের বাসা ভাড়ার ইনভয়েস তৈরি হয়েছে।\nমোট বিল: ${toBanglaWord(total)}/-\nবিকাশ/নগদ পেমেন্ট: ${toBanglaWord(BKASH_NO)}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন। "পানির সঠিক ব্যবহার নিশ্চিত করুন, অপচয় রোধে সচেতন হোন।" ধন্যবাদ।\nস্বপ্নবিলাস`;
+        const msg = `আসসালামু আলাইকুম প্রিয় ${t[1]},\nআপনার ${month} ${year} মাসের বাসা ভাড়ার ইনভয়েস তৈরি হয়েছে।\nমোট বিল: ${toBanglaWord(total)}/-\nবিকাশ/নগদ: ${toBanglaWord(BKASH_NO)}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন। "পানির সঠিক ব্যবহার নিশ্চিত করুন, অপচয় রোধে সচেতন হোন।" ধন্যবাদ।\nস্বপ্নবিলাস`;
         
         let ph = String(t[3]).trim().replace(/[^0-9]/g, '');
         if(ph.length === 11 && ph.startsWith('01')) ph = '88' + ph;
@@ -954,7 +969,7 @@
 
         const appUrl = window.location.href.split('#')[0].split('?')[0];
         const invLink = `${appUrl}?t=${t[0]}&m=${month}&y=${year}`;
-        const msg = `আসসালামু আলাইকুম প্রিয় ${t[2]},\nআপনার ${month} ${year} মাসের বাসা ভাড়ার ইনভয়েস ${isEditing ? 'আপডেট' : 'তৈরি'} হয়েছে।\nমোট বিল: ${toBanglaWord(total)}/-\nবিকাশ/নগদ পেমেন্ট: ${toBanglaWord(BKASH_NO)}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন। "পানির সঠিক ব্যবহার নিশ্চিত করুন, অপচয় রোধে সচেতন হোন।" ধন্যবাদ।\nস্বপ্নবিলাস`;
+        const msg = `আসসালামু আলাইকুম প্রিয় ${t[2]},\nআপনার ${month} ${year} মাসের বাসা ভাড়ার ইনভয়েস ${isEditing ? 'আপডেট' : 'তৈরি'} হয়েছে।\nমোট বিল: ${toBanglaWord(total)}/-\nবিকাশ/নগদ: ${toBanglaWord(BKASH_NO)}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন। "পানির সঠিক ব্যবহার নিশ্চিত করুন, অপচয় রোধে সচেতন হোন।" ধন্যবাদ।\nস্বপ্নবিলাস`;
         
         let ph = String(t[1]).trim().replace(/[^0-9]/g, '');
         if(ph.length === 11 && ph.startsWith('01')) ph = '88' + ph;
@@ -986,7 +1001,7 @@
                 <div class="flex justify-between items-start border-b pb-2 mb-2">
                     <div><b class="text-base text-slate-800">${l[1]}</b><p class="text-[10px] text-slate-400 mt-1">প্রদান: ${formatDate(l[4])}</p></div>
                     <div class="text-right">
-                        <div class="font-bold text-orange-600 text-sm">লোন: ${toBanglaWord(given)}/-</div>
+                        <div class="font-bold text-orange-600 text-sm">লোন: <span class="bn-num">${toBanglaWord(given)}</span>/-</div>
                         <div class="mt-1 flex justify-end gap-1 admin-only">
                             <button onclick="editLoan('${l[0]}')" class="text-blue-500 bg-blue-50 px-2 py-1 rounded text-xs"><i class="fas fa-edit"></i></button>
                             <button onclick="deleteLoan('${l[0]}')" class="text-red-500 bg-red-50 px-2 py-1 rounded text-xs"><i class="fas fa-trash-alt"></i></button>
@@ -994,8 +1009,8 @@
                     </div>
                 </div>
                 <div class="flex justify-between items-center bg-slate-50 p-2 rounded">
-                    <div><p class="text-[10px] text-slate-500">ফেরত ট্র্যাকিং:</p><b class="text-xs text-green-600">${toBanglaWord(retAmt)}/- ${retAmt>0 ? `(${formatDate(l[6])})` : ''}</b></div>
-                    <div class="text-right"><p class="text-[10px] text-slate-500">বকেয়া:</p><b class="text-sm ${due>0?'text-red-600':'text-green-600'}">${toBanglaWord(due)}/-</b></div>
+                    <div><p class="text-[10px] text-slate-500">ফেরত ট্র্যাকিং:</p><b class="text-xs text-green-600 bn-num">${toBanglaWord(retAmt)}/- ${retAmt>0 ? `(${formatDate(l[6])})` : ''}</b></div>
+                    <div class="text-right"><p class="text-[10px] text-slate-500">বকেয়া:</p><b class="text-sm ${due>0?'text-red-600':'text-green-600'} bn-num">${toBanglaWord(due)}/-</b></div>
                 </div>
                 <div class="mt-3 flex flex-wrap justify-between items-center gap-2 admin-only">
                     ${retAmt > 0 ? `<div class="flex gap-1"><button onclick="editLoanReturn('${l[0]}')" class="text-blue-500 text-[10px] bg-blue-50 px-2 py-1 rounded">রিটার্ন এডিট</button><button onclick="deleteLoanReturn('${l[0]}')" class="text-red-500 text-[10px] bg-red-50 px-2 py-1 rounded">রিটার্ন ডিলিট</button></div>` : `<div></div>`}
@@ -1024,7 +1039,7 @@
             html += `<div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500 flex justify-between items-center hover:bg-slate-50">
                 <div><b class="text-slate-800 text-sm">${e[1]}</b><p class="text-xs text-slate-500 mt-1">${formatDate(e[3])}</p></div>
                 <div class="text-right">
-                    <div class="text-red-600 font-bold text-lg">${toBanglaWord(e[2])}/-</div>
+                    <div class="text-red-600 font-bold text-lg bn-num">${toBanglaWord(e[2])}/-</div>
                     <div class="mt-1 flex justify-end gap-1 admin-only">
                         <button onclick="editExpense('${e[0]}')" class="text-blue-500 bg-blue-50 px-2 py-1 rounded text-xs"><i class="fas fa-edit"></i></button>
                         <button onclick="deleteExpense('${e[0]}')" class="text-red-500 bg-red-50 px-2 py-1 rounded text-xs"><i class="fas fa-trash-alt"></i></button>
@@ -1047,7 +1062,7 @@
             <div class="bg-white p-3 rounded-lg shadow-sm border border-slate-100 flex justify-between items-center">
                 <div><b class="text-slate-800 text-sm">${b[1]}</b><p class="text-[10px] text-slate-500">A/C: ${b[3]} | ${formatDate(b[5])}</p></div>
                 <div class="text-right">
-                    <div class="text-indigo-600 font-bold text-sm bg-indigo-50 px-2 py-1 rounded">${toBanglaWord(b[4])}/-</div>
+                    <div class="text-indigo-600 font-bold text-sm bg-indigo-50 px-2 py-1 rounded bn-num">${toBanglaWord(b[4])}/-</div>
                     <div class="mt-1 flex justify-end gap-1 admin-only">
                         <button onclick="editBank('${b[0]}')" class="text-blue-500 bg-blue-50 px-2 py-1 rounded text-[10px]"><i class="fas fa-edit"></i></button>
                         <button onclick="deleteBank('${b[0]}')" class="text-red-500 bg-red-50 px-2 py-1 rounded text-[10px]"><i class="fas fa-trash-alt"></i></button>
@@ -1066,7 +1081,7 @@
         allInvoices.slice(1).reverse().forEach(inv => {
             const t = allTenants.find(t => t[0] == inv[1]);
             sums.rent += Number(inv[rIdx]); sums.elec += Number(inv[eIdx]); sums.water += Number(inv[wIdx]); sums.service += Number(inv[sIdx]); sums.due += Number(inv[dIdx]); sums.total += Number(inv[tIdx]);
-            html += `<tr class="border-b text-[11px] md:text-xs hover:bg-slate-50"><td class="p-2 border font-bold">${t?t[1]+'<br><span class="text-[9px] text-slate-400">('+t[2]+')</span>':'N/A'}</td><td class="p-2 border">${inv[2]} ${inv[3]||''}</td><td class="p-2 border text-right">${toBanglaWord(inv[rIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[eIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[wIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[sIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[dIdx])}</td><td class="p-2 border text-right font-bold text-blue-600">${toBanglaWord(inv[tIdx])}</td>
+            html += `<tr class="border-b text-[11px] md:text-xs hover:bg-slate-50"><td class="p-2 border font-bold">${t?t[1]+'<br><span class="text-[9px] text-slate-400">('+t[2]+')</span>':'N/A'}</td><td class="p-2 border">${inv[2]} ${inv[3]||''}</td><td class="p-2 border text-right bn-num">${toBanglaWord(inv[rIdx])}</td><td class="p-2 border text-right bn-num">${toBanglaWord(inv[eIdx])}</td><td class="p-2 border text-right bn-num">${toBanglaWord(inv[wIdx])}</td><td class="p-2 border text-right bn-num">${toBanglaWord(inv[sIdx])}</td><td class="p-2 border text-right bn-num">${toBanglaWord(inv[dIdx])}</td><td class="p-2 border text-right font-bold text-blue-600 bn-num">${toBanglaWord(inv[tIdx])}</td>
             <td class="p-2 border text-center admin-only">
                 <button onclick="sendWhatsAppInvoice('${inv[0]}')" class="text-green-600 bg-green-50 px-2 py-1 rounded hover:bg-green-600 hover:text-white transition mr-1" title="হোয়াটসঅ্যাপে পাঠান"><i class="fab fa-whatsapp"></i></button>
                 <button onclick="editInvoice('${inv[0]}')" class="text-blue-500 bg-blue-50 px-2 py-1 rounded hover:bg-blue-500 hover:text-white transition mr-1" title="এডিট"><i class="fas fa-edit"></i></button>
@@ -1074,7 +1089,7 @@
             </td></tr>`;
         });
         document.getElementById('reportContent').innerHTML = html + "</tbody></table>";
-        document.getElementById('headSummary').innerHTML = `<div class="bg-white p-3 rounded shadow border-l-4 border-blue-500">ভাড়া:<br><b class="text-sm md:text-base">${toBanglaWord(sums.rent)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-yellow-500">বিদ্যুৎ:<br><b class="text-sm md:text-base">${toBanglaWord(sums.elec)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-cyan-500">পানি:<br><b class="text-sm md:text-base">${toBanglaWord(sums.water)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-indigo-500">সার্ভিস:<br><b class="text-sm md:text-base">${toBanglaWord(sums.service)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-red-500 text-red-600">বকেয়া:<br><b class="text-sm md:text-base">${toBanglaWord(sums.due)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-green-500 text-green-600 font-bold">মোট:<br><b class="text-sm md:text-base">${toBanglaWord(sums.total)}</b></div>`;
+        document.getElementById('headSummary').innerHTML = `<div class="bg-white p-3 rounded shadow border-l-4 border-blue-500">ভাড়া:<br><b class="text-sm md:text-base bn-num">${toBanglaWord(sums.rent)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-yellow-500">বিদ্যুৎ:<br><b class="text-sm md:text-base bn-num">${toBanglaWord(sums.elec)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-cyan-500">পানি:<br><b class="text-sm md:text-base bn-num">${toBanglaWord(sums.water)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-indigo-500">সার্ভিস:<br><b class="text-sm md:text-base bn-num">${toBanglaWord(sums.service)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-red-500 text-red-600">বকেয়া:<br><b class="text-sm md:text-base bn-num">${toBanglaWord(sums.due)}</b></div><div class="bg-white p-3 rounded shadow border-l-4 border-green-500 text-green-600 font-bold">মোট:<br><b class="text-sm md:text-base bn-num">${toBanglaWord(sums.total)}</b></div>`;
         updateFundCalculation(); applyRoleRestrictions();
     }
 
@@ -1087,7 +1102,7 @@
             html += `<div onclick='showUserInvoiceModal(${JSON.stringify(inv)}, ${JSON.stringify(user)})' class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 cursor-pointer hover:shadow-md hover:border-blue-300 transition group">
                 <div class="flex justify-between items-center">
                     <div><b class="text-lg text-slate-800 group-hover:text-blue-600 transition">${inv[2]} ${inv[3]}</b><p class="text-xs text-slate-400 mt-1"><i class="fas fa-file-pdf mr-1"></i> ইনভয়েস দেখুন</p></div>
-                    <div class="text-blue-600 font-bold text-xl bg-blue-50 px-3 py-1 rounded-lg">${toBanglaWord(inv[tIdx])}/-</div>
+                    <div class="text-blue-600 font-bold text-xl bg-blue-50 px-3 py-1 rounded-lg bn-num">${toBanglaWord(inv[tIdx])}/-</div>
                 </div></div>`;
         });
         document.getElementById('userInvoiceList').innerHTML = html || "<div class='col-span-2 text-center text-slate-400 py-10'>আপনার কোনো ইনভয়েস পাওয়া যায়নি।</div>";
@@ -1129,70 +1144,88 @@
             <div class="pdf-wrapper">
                 <div class="invoice-print-area rounded-2xl border-t-8 border-t-blue-600" id="printArea_${containerId}">
                     <div class="watermark text-slate-100">স্বপ্নবিলাস</div>
-                    <div class="flex flex-row justify-between items-start border-b-2 border-slate-100 pb-5 mb-5 relative-z">
+                    
+                    <!-- Header -->
+                    <div class="flex flex-row justify-between items-start border-b border-slate-100 pb-3 mb-3 relative-z">
                         <div class="text-left">
-                            <h1 class="text-3xl sm:text-4xl font-extrabold text-blue-600 tracking-tight">স্বপ্নবিলাস</h1>
-                            <p class="text-xs sm:text-sm text-slate-500 font-semibold mt-1 bg-slate-100 px-3 py-1 rounded-full inline-block">মাসিক বাসা ভাড়া ইনভয়েস</p>
+                            <h1 class="text-2xl sm:text-3xl font-extrabold text-blue-600 tracking-tight">স্বপ্নবিলাস</h1>
+                            <p class="text-[11px] sm:text-xs text-slate-500 font-semibold mt-0.5 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block">মাসিক বাসা ভাড়া ইনভয়েস</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-xs sm:text-sm text-slate-500">ইস্যু তারিখ: <b class="text-slate-800">${formatDate(issueDateStr)}</b></p>
-                            <div class="mt-2 bg-blue-50 border border-blue-100 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg inline-block text-center">
-                                <p class="text-[11px] text-slate-500">বিলের মাস</p>
-                                <p class="text-base sm:text-lg font-bold text-blue-700">${inv[2]} ${inv[3]}</p>
-                                <p class="text-[10px] sm:text-[11px] font-bold text-white bg-red-600 px-2.5 py-0.5 sm:py-1 rounded-md mt-1 shadow-md border border-red-400">১০ ${nextMonthBn} ${nextYearBn} বিল পরিশোধের শেষ তারিখ</p>
+                            <p class="text-[11px] sm:text-xs text-slate-500">ইস্যু তারিখ: <b class="text-slate-800 bn-num">${formatDate(issueDateStr)}</b></p>
+                            <div class="mt-1 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg inline-block text-center">
+                                <p class="text-[10px] text-slate-500">বিলের মাস</p>
+                                <p class="text-sm sm:text-base font-bold text-blue-700 bn-num">${inv[2]} ${inv[3]}</p>
+                                <p class="text-[9px] sm:text-[10px] font-bold text-white bg-red-600 px-2 py-0.5 rounded mt-0.5 shadow-sm border border-red-400 bn-num">১০ ${nextMonthBn} ${nextYearBn} বিল পরিশোধের শেষ তারিখ</p>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-slate-50 p-4 sm:p-5 rounded-xl mb-5 border border-slate-100 flex justify-between items-center relative-z">
+
+                    <!-- Tenant Details -->
+                    <div class="bg-slate-50 px-3.5 py-2.5 rounded-xl mb-3 border border-slate-100 flex justify-between items-center relative-z">
                         <div>
-                            <p class="text-[11px] text-slate-400 uppercase tracking-wider mb-0.5">ভাড়াটিয়ার বিবরণ</p>
-                            <h3 class="text-lg sm:text-xl font-bold text-slate-800">${user[1]}</h3>
-                            <p class="text-xs sm:text-sm text-slate-600 mt-0.5"><i class="fas fa-home mr-1.5 text-blue-400"></i>ফ্ল্যাট: <b class="text-slate-800">${user[2]}</b></p>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-wider">ভাড়াটিয়ার বিবরণ</p>
+                            <h3 class="text-base sm:text-lg font-bold text-slate-800 leading-tight">${user[1]}</h3>
+                            <p class="text-xs text-slate-600 mt-0.5"><i class="fas fa-home mr-1 text-blue-400"></i>ফ্ল্যাট: <b class="text-slate-800">${user[2]}</b></p>
                         </div>
                         <div class="text-right">
-                            <p class="text-xs sm:text-sm text-slate-500 bg-white px-3 py-1 rounded border"><i class="fas fa-phone-alt mr-1.5 text-green-500"></i>${toBanglaWord(user[3])}</p>
+                            <p class="text-xs text-slate-600 bg-white px-2.5 py-1 rounded border bn-num"><i class="fas fa-phone-alt mr-1 text-green-500"></i>${toBanglaWord(user[3])}</p>
                         </div>
                     </div>
-                    <div class="mb-5 relative-z">
+
+                    <!-- Invoice Table -->
+                    <div class="mb-3 relative-z">
                         <table class="w-full text-left border-collapse">
-                            <thead><tr class="bg-slate-800 text-white"><th class="p-2.5 sm:p-3 rounded-tl-lg font-semibold text-xs sm:text-sm">বিলের বিবরণ</th><th class="p-2.5 sm:p-3 rounded-tr-lg text-right font-semibold text-xs sm:text-sm w-36 sm:w-40">টাকা (৳)</th></tr></thead>
-                            <tbody class="text-sm sm:text-base">
-                                <tr class="border-b border-slate-100"><td class="p-2 sm:p-2.5 text-slate-700">বাসা ভাড়া</td><td class="p-2 sm:p-2.5 text-right font-bold text-slate-800">${toBanglaWord(inv[r])}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="p-2 sm:p-2.5 text-slate-700">বিদ্যুৎ বিল</td><td class="p-2 sm:p-2.5 text-right font-bold text-slate-800">${toBanglaWord(inv[e])}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="p-2 sm:p-2.5 text-slate-700">পানির বিল</td><td class="p-2 sm:p-2.5 text-right font-bold text-slate-800">${toBanglaWord(inv[w])}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="p-2 sm:p-2.5 text-slate-700">সার্ভিস চার্জ</td><td class="p-2 sm:p-2.5 text-right font-bold text-slate-800">${toBanglaWord(inv[s])}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="p-2 sm:p-2.5 text-red-500">বকেয়া (পূর্বের)</td><td class="p-2 sm:p-2.5 text-right font-bold text-red-600">${toBanglaWord(inv[d])}</td></tr>
-                                ${inv[a] > 0 ? `<tr class="border-b border-slate-100"><td class="p-2 sm:p-2.5 text-green-600">এডভান্স কর্তন</td><td class="p-2 sm:p-2.5 text-right font-bold text-green-600">- ${toBanglaWord(inv[a])}</td></tr>` : ''}
+                            <thead>
+                                <tr class="bg-slate-800 text-white text-xs">
+                                    <th class="py-1.5 px-3 rounded-tl-lg font-semibold">বিলের বিবরণ</th>
+                                    <th class="py-1.5 px-3 rounded-tr-lg text-right font-semibold w-32 sm:w-36">টাকা (৳)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-xs sm:text-sm">
+                                <tr class="border-b border-slate-100"><td class="py-1.5 px-3 text-slate-700">বাসা ভাড়া</td><td class="py-1.5 px-3 text-right font-bold text-slate-800 bn-num">${toBanglaWord(inv[r])}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1.5 px-3 text-slate-700">বিদ্যুৎ বিল</td><td class="py-1.5 px-3 text-right font-bold text-slate-800 bn-num">${toBanglaWord(inv[e])}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1.5 px-3 text-slate-700">পানির বিল</td><td class="py-1.5 px-3 text-right font-bold text-slate-800 bn-num">${toBanglaWord(inv[w])}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1.5 px-3 text-slate-700">সার্ভিস চার্জ</td><td class="py-1.5 px-3 text-right font-bold text-slate-800 bn-num">${toBanglaWord(inv[s])}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1.5 px-3 text-red-500">বকেয়া (পূর্বের)</td><td class="py-1.5 px-3 text-right font-bold text-red-600 bn-num">${toBanglaWord(inv[d])}</td></tr>
+                                ${inv[a] > 0 ? `<tr class="border-b border-slate-100"><td class="py-1.5 px-3 text-green-600">এডভান্স কর্তন</td><td class="py-1.5 px-3 text-right font-bold text-green-600 bn-num">- ${toBanglaWord(inv[a])}</td></tr>` : ''}
                             </tbody>
                             <tfoot>
-                                <tr class="bg-blue-50"><td class="p-3 sm:p-4 rounded-bl-lg font-bold text-base sm:text-lg text-blue-800 text-right">সর্বমোট প্রদেয় বিল:</td><td class="p-3 sm:p-4 rounded-br-lg text-right font-black text-xl sm:text-2xl text-blue-700">৳ ${toBanglaWord(inv[t])}</td></tr>
+                                <tr class="bg-blue-50">
+                                    <td class="py-2.5 px-3 rounded-bl-lg font-bold text-sm sm:text-base text-blue-800 text-right">সর্বমোট প্রদেয় বিল:</td>
+                                    <td class="py-2.5 px-3 rounded-br-lg text-right font-black text-lg sm:text-xl text-blue-700 bn-num">৳ ${toBanglaWord(inv[t])}</td>
+                                </tr>
                             </tfoot>
                         </table>
                     </div>
-                    <div class="flex flex-row gap-3 sm:gap-4 text-xs sm:text-sm relative-z w-full mb-4">
-                        <div class="bg-pink-50 border border-pink-100 p-3 sm:p-4 rounded-xl w-1/2">
-                            <p class="font-bold text-pink-700 mb-1.5 border-b border-pink-200 pb-1 flex items-center"><i class="fas fa-mobile-alt mr-1.5"></i>মোবাইল ব্যাংকিং</p>
-                            <p class="text-slate-600 mb-0.5">বিকাশ: <b class="text-slate-800 text-sm sm:text-base">${toBanglaWord(BKASH_NO)}</b></p>
-                            <p class="text-slate-600">নগদ: <b class="text-slate-800 text-sm sm:text-base">${toBanglaWord(NAGAD_NO)}</b></p>
+
+                    <!-- Payment Details (Combined Bkash/Nagad) -->
+                    <div class="flex flex-row gap-2.5 text-xs relative-z w-full mb-2.5">
+                        <div class="bg-pink-50 border border-pink-100 p-2.5 rounded-xl w-1/2">
+                            <p class="font-bold text-pink-700 mb-1 border-b border-pink-200 pb-0.5 flex items-center"><i class="fas fa-mobile-alt mr-1 text-pink-600"></i>মোবাইল ব্যাংকিং</p>
+                            <p class="text-slate-700 font-semibold mt-1">বিকাশ/নগদ: <b class="text-slate-900 text-sm bn-num">${toBanglaWord(BKASH_NO)}</b></p>
                         </div>
-                        <div class="bg-indigo-50 border border-indigo-100 p-3 sm:p-4 rounded-xl w-1/2">
-                            <p class="font-bold text-indigo-700 mb-1.5 border-b border-indigo-200 pb-1 flex items-center"><i class="fas fa-university mr-1.5"></i>ব্যাংক একাউন্ট</p>
-                            <p class="text-slate-700 font-semibold text-xs sm:text-sm leading-relaxed">${BANK_INFO}</p>
+                        <div class="bg-indigo-50 border border-indigo-100 p-2.5 rounded-xl w-1/2">
+                            <p class="font-bold text-indigo-700 mb-1 border-b border-indigo-200 pb-0.5 flex items-center"><i class="fas fa-university mr-1 text-indigo-600"></i>ব্যাংক একাউন্ট</p>
+                            <p class="text-slate-700 font-semibold mt-1 leading-snug">${BANK_INFO}</p>
                         </div>
                     </div>
                     
-                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-center relative-z">
-                        <p class="text-xs sm:text-sm font-semibold text-amber-900 flex items-center justify-center gap-1.5">
+                    <!-- Notice Box -->
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl py-2 px-3 text-center relative-z">
+                        <p class="text-[11px] sm:text-xs font-semibold text-amber-900 flex items-center justify-center gap-1.5">
                             <i class="fas fa-faucet-drip text-blue-500"></i> পানির সঠিক ব্যবহার নিশ্চিত করুন, অপচয় রোধে সচেতন হোন।
                         </p>
-                        <p class="text-[11px] sm:text-xs font-medium text-amber-800 mt-0.5 flex items-center justify-center gap-1.5">
+                        <p class="text-[10px] sm:text-[11px] font-medium text-amber-800 mt-0.5 flex items-center justify-center gap-1.5">
                             <i class="fas fa-check-circle text-green-600"></i> অনুগ্রহ করে বিল পরিশোধের পর মেসেজ বা কল দিয়ে কনফার্ম করবেন।
                         </p>
                     </div>
                 </div>
             </div>
-            <div class="flex flex-col sm:flex-row gap-3 mt-6 no-print">
-                <button onclick="downloadBeautifulPDF('printArea_${containerId}')" class="flex-1 bg-slate-800 hover:bg-slate-900 transition text-white px-8 py-4 rounded-xl font-bold w-full flex justify-center items-center gap-2 text-lg shadow-lg">
+
+            <!-- Print Button (Hidden on Print) -->
+            <div class="flex flex-col sm:flex-row gap-3 mt-4 no-print">
+                <button onclick="downloadBeautifulPDF('printArea_${containerId}')" class="flex-1 bg-slate-800 hover:bg-slate-900 transition text-white px-6 py-3.5 rounded-xl font-bold w-full flex justify-center items-center gap-2 text-base sm:text-lg shadow-lg">
                     <i class="fas fa-print"></i> ইনভয়েস প্রিন্ট / পিডিএফ সেভ
                 </button>
             </div>
