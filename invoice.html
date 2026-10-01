@@ -175,13 +175,14 @@
             <h2 class="text-xl md:text-2xl font-bold mb-6">ইনভয়েস তৈরি / এডিট</h2>
             <form onsubmit="saveInvoice(event)" class="space-y-4">
                 <input type="hidden" id="invIdHidden">
+                <input type="hidden" id="invCreatedDateHidden">
                 <select id="invTenant" required class="w-full p-3 border rounded-xl"></select>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <select id="invMonth" class="p-3 border rounded-xl outline-none w-full">
                         <option>জানুয়ারি</option><option>ফেব্রুয়ারি</option><option>মার্চ</option><option>এপ্রিল</option><option>মে</option><option>জুন</option><option>জুলাই</option><option>আগস্ট</option><option>সেপ্টেম্বর</option><option>অক্টোবর</option><option>নভেম্বর</option><option>ডিসেম্বর</option>
                     </select>
                     <select id="invYear" class="p-3 border rounded-xl w-full">
-                        <option>২০২৪</option><option>২০২৫</option><option selected>২০২৬</option>
+                        <option>২০২৪</option><option>২০২৫</option><option>২০২৬</option><option>২০২৭</option>
                     </select>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -283,6 +284,17 @@
     </section>
 </main>
 
+<div id="historyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 id="histTitle" class="font-bold text-lg text-slate-800">ফ্ল্যাট হিস্ট্রি</h3>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-lg"></i></button>
+        </div>
+        <input type="text" id="histFilter" oninput="filterHistory()" placeholder="ফিল্টার বা সার্চ..." class="w-full p-2 border rounded-lg text-sm mb-3">
+        <div id="histContent" class="space-y-2 max-h-72 overflow-y-auto"></div>
+    </div>
+</div>
+
 <div id="userView" class="hidden min-h-screen p-4 sm:p-6 w-full max-w-4xl mx-auto flex-col bg-slate-50">
     <div class="flex justify-between items-center mb-6 md:mb-8 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-blue-100">
         <div>
@@ -307,13 +319,62 @@
     let allTenants = [], allInvoices = [], allLoans = [], allExpenses = [], allBanks = [];
     let currentRole = ""; 
     const FLATS_LIST = ["A-1", "A-2", "A-3", "A-4", "B-1", "B-2", "B-3", "B-4", "C-1", "C-2", "C-3", "D-1", "D-2", "G-1"];
+    const BN_MONTHS = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
 
     function toBanglaWord(n) { return String(n).replace(/\d/g, d => ['০','১','২','৩','৪','৫','৬','৭','৮','৯'][d]); }
+    function toEngDigits(str) { return String(str).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d)); }
+    
     function formatDate(dateStr) {
         if(!dateStr || dateStr === "") return "-";
         try { const d = new Date(dateStr); return isNaN(d) ? dateStr : d.toLocaleDateString('bn-BD', {day:'numeric', month:'short', year:'numeric'}); } catch(e) { return dateStr; }
     }
     
+    function applyRoleRestrictions() {
+        const role = currentRole || localStorage.getItem('userRole');
+        const isManager = (role === 'manager');
+        const badge = document.getElementById('roleBadge');
+        if (badge) {
+            if (isManager) badge.classList.remove('hidden');
+            else badge.classList.add('hidden');
+        }
+        document.querySelectorAll('.admin-only').forEach(el => {
+            if (isManager) el.classList.add('hidden');
+            else el.classList.remove('hidden');
+        });
+        document.querySelectorAll('.admin-only-tab').forEach(el => {
+            if (isManager) el.classList.add('hidden');
+            else el.classList.remove('hidden');
+        });
+    }
+
+    function autoSetInvoiceMonthYear() {
+        const now = new Date();
+        let prevMIdx = now.getMonth() - 1;
+        let prevYr = now.getFullYear();
+        if (prevMIdx < 0) {
+            prevMIdx = 11;
+            prevYr -= 1;
+        }
+        const mSel = document.getElementById('invMonth');
+        const ySel = document.getElementById('invYear');
+        if (mSel) mSel.value = BN_MONTHS[prevMIdx];
+        if (ySel) {
+            const bnYr = toBanglaWord(prevYr);
+            let exists = false;
+            for(let i=0; i<ySel.options.length; i++) {
+                if(ySel.options[i].value === bnYr || ySel.options[i].value === String(prevYr)) {
+                    ySel.selectedIndex = i;
+                    exists = true;
+                    break;
+                }
+            }
+            if(!exists) {
+                const opt = new Option(bnYr, bnYr, true, true);
+                ySel.add(opt);
+            }
+        }
+    }
+
     function logout() { 
         localStorage.removeItem('userRole');
         localStorage.removeItem('userData');
@@ -321,7 +382,20 @@
         window.location.href = window.location.href.split('?')[0]; 
     }
 
+    function loadLocalCache() {
+        try {
+            allTenants = JSON.parse(localStorage.getItem('cache_tenants') || "[]");
+            allInvoices = JSON.parse(localStorage.getItem('cache_invoices') || "[]");
+            allLoans = JSON.parse(localStorage.getItem('cache_loans') || "[]");
+            allExpenses = JSON.parse(localStorage.getItem('cache_expenses') || "[]");
+            allBanks = JSON.parse(localStorage.getItem('cache_banks') || "[]");
+        } catch(e) { console.error("Cache load error", e); }
+    }
+
     window.onload = async () => {
+        loadLocalCache();
+        autoSetInvoiceMonthYear();
+
         const params = new URLSearchParams(window.location.search);
         const tIdParam = params.get('t');
         const monthParam = params.get('m');
@@ -329,28 +403,52 @@
         
         if(tIdParam && monthParam && yearParam) {
             document.getElementById('choiceBox').classList.add('hidden');
-            document.getElementById('loadingText').classList.remove('hidden');
-            await fetchData();
-            document.getElementById('loadingText').classList.add('hidden');
-            const inv = [...allInvoices].reverse().find(row => {
-                const rowData = row.join('==='); 
-                const engYear = String(yearParam).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d));
-                return rowData.includes(tIdParam) && rowData.includes(monthParam) && (rowData.includes(yearParam) || rowData.includes(engYear));
-            });
-            if(inv) {
-                const user = allTenants.find(t => t.some(cell => String(cell) === String(tIdParam)));
-                if(user) {
+            
+            let inv = null;
+            let user = null;
+            
+            if (allInvoices.length > 0 && allTenants.length > 0) {
+                const engYear = toEngDigits(yearParam);
+                inv = [...allInvoices].reverse().find(row => {
+                    const rowData = row.join('==='); 
+                    return rowData.includes(tIdParam) && rowData.includes(monthParam) && (rowData.includes(yearParam) || rowData.includes(engYear));
+                });
+                if(inv) user = allTenants.find(t => t.some(cell => String(cell) === String(tIdParam)));
+            }
+
+            if(inv && user) {
+                document.getElementById('authOverlay').classList.add('hidden');
+                document.getElementById('directInvoiceView').classList.remove('hidden');
+                document.getElementById('directInvoiceView').classList.add('flex');
+                let rentIdx = 4, elecIdx = 5, waterIdx = 6, srvIdx = 7, advIdx = 8, dueIdx = 9, totalIdx = 10;
+                if(!String(inv[0]).startsWith('INV-')) { rentIdx=3; elecIdx=4; waterIdx=5; srvIdx=6; advIdx=7; dueIdx=8; totalIdx=9; }
+                renderBeautifulInvoice(inv, user, 'directInvoiceContainer', rentIdx, elecIdx, waterIdx, srvIdx, advIdx, dueIdx, totalIdx);
+                fetchData(true);
+            } else {
+                document.getElementById('loadingText').classList.remove('hidden');
+                await fetchData(true);
+                document.getElementById('loadingText').classList.add('hidden');
+                const engYear = toEngDigits(yearParam);
+                inv = [...allInvoices].reverse().find(row => {
+                    const rowData = row.join('==='); 
+                    return rowData.includes(tIdParam) && rowData.includes(monthParam) && (rowData.includes(yearParam) || rowData.includes(engYear));
+                });
+                if(inv) {
+                    user = allTenants.find(t => t.some(cell => String(cell) === String(tIdParam)));
+                    if(user) {
+                        document.getElementById('authOverlay').classList.add('hidden');
+                        document.getElementById('directInvoiceView').classList.remove('hidden');
+                        document.getElementById('directInvoiceView').classList.add('flex');
+                        let rentIdx = 4, elecIdx = 5, waterIdx = 6, srvIdx = 7, advIdx = 8, dueIdx = 9, totalIdx = 10;
+                        if(!String(inv[0]).startsWith('INV-')) { rentIdx=3; elecIdx=4; waterIdx=5; srvIdx=6; advIdx=7; dueIdx=8; totalIdx=9; }
+                        renderBeautifulInvoice(inv, user, 'directInvoiceContainer', rentIdx, elecIdx, waterIdx, srvIdx, advIdx, dueIdx, totalIdx);
+                    } else { alert("ভাড়াটিয়ার তথ্য পাওয়া যায়নি!"); logout(); }
+                } else { 
                     document.getElementById('authOverlay').classList.add('hidden');
                     document.getElementById('directInvoiceView').classList.remove('hidden');
                     document.getElementById('directInvoiceView').classList.add('flex');
-                    let rentIdx = 4, elecIdx = 5, waterIdx = 6, srvIdx = 7, advIdx = 8, dueIdx = 9, totalIdx = 10;
-                    if(!String(inv[0]).startsWith('INV-')) { rentIdx=3; elecIdx=4; waterIdx=5; srvIdx=6; advIdx=7; dueIdx=8; totalIdx=9; }
-                    renderBeautifulInvoice(inv, user, 'directInvoiceContainer', rentIdx, elecIdx, waterIdx, srvIdx, advIdx, dueIdx, totalIdx);
-                } else { alert("ভাড়াটিয়ার তথ্য পাওয়া যায়নি!"); logout(); }
-            } else { 
-                document.getElementById('directInvoiceView').classList.remove('hidden');
-                document.getElementById('directInvoiceView').classList.add('flex');
-                document.getElementById('invoiceNotFoundContainer').classList.remove('hidden');
+                    document.getElementById('invoiceNotFoundContainer').classList.remove('hidden');
+                }
             }
             return;
         }
@@ -361,16 +459,17 @@
 
         if (savedRole && lastActive && (Date.now() - lastActive < IDLE_LIMIT)) {
             document.getElementById('choiceBox').classList.add('hidden');
-            document.getElementById('loadingText').classList.remove('hidden');
-            await fetchData();
-            document.getElementById('loadingText').classList.add('hidden');
+            currentRole = savedRole;
 
             if (savedRole === 'admin' || savedRole === 'manager') {
-                currentRole = savedRole;
                 document.getElementById('authOverlay').classList.add('hidden');
                 document.getElementById('adminSidebar').classList.remove('hidden');
                 document.getElementById('mainContent').classList.remove('hidden');
                 applyRoleRestrictions();
+                if(allTenants.length > 0) {
+                    renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); 
+                }
+                fetchData(true);
             } else if (savedRole === 'user') {
                 const userData = JSON.parse(localStorage.getItem('userData'));
                 if (userData) {
@@ -378,15 +477,18 @@
                     document.getElementById('userView').classList.remove('hidden');
                     document.getElementById('userView').classList.add('flex');
                     document.getElementById('welcomeUser').innerHTML = `স্বাগতম, <span class="text-blue-600">${userData[1]}</span> (ফ্ল্যাট: ${userData[2]})`; 
-                    renderUserInvoices(userData);
+                    if(allInvoices.length > 0) renderUserInvoices(userData);
+                    fetchData(true);
                 }
             }
         }
     };
 
     function showLogin(type) {
-        document.getElementById('choiceBox').classList.add('hidden'); document.getElementById('adminLoginForm').classList.add('hidden');
-        document.getElementById('managerLoginForm').classList.add('hidden'); document.getElementById('userLoginForm').classList.add('hidden');
+        document.getElementById('choiceBox').classList.add('hidden'); 
+        document.getElementById('adminLoginForm').classList.add('hidden');
+        document.getElementById('managerLoginForm').classList.add('hidden'); 
+        document.getElementById('userLoginForm').classList.add('hidden');
         if(type === 'admin') { document.getElementById('adminLoginForm').classList.remove('hidden'); document.getElementById('adminPin').focus(); }
         else if(type === 'manager') { document.getElementById('managerLoginForm').classList.remove('hidden'); document.getElementById('managerPin').focus(); }
         else if(type === 'user') { document.getElementById('userLoginForm').classList.remove('hidden'); document.getElementById('userPhone').focus(); }
@@ -404,27 +506,41 @@
             document.getElementById('adminSidebar').classList.remove('hidden'); 
             document.getElementById('mainContent').classList.remove('hidden');
             applyRoleRestrictions(); 
-            document.getElementById('loadingText').classList.remove('hidden'); 
-            document.getElementById('authOverlay').classList.remove('hidden');
-            await fetchData(true); 
-            document.getElementById('authOverlay').classList.add('hidden');
+            
+            if(allTenants.length > 0) {
+                renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks();
+            }
+            fetchData(true);
         } else alert("ভুল পিন!");
     }
 
     async function userLogin() {
-        const ph = document.getElementById('userPhone').value; const ps = document.getElementById('userPass').value;
-        document.getElementById('loadingText').classList.remove('hidden'); document.getElementById('userLoginForm').classList.add('hidden');
-        await fetchData(true); const user = allTenants.find(t => t[3] == ph && t[4] == ps);
-        document.getElementById('loadingText').classList.add('hidden');
+        const ph = document.getElementById('userPhone').value; 
+        const ps = document.getElementById('userPass').value;
+        if(!ph || !ps) return alert("মোবাইল ও পাসওয়ার্ড লিখুন");
+        
+        let user = allTenants.find(t => t[3] == ph && t[4] == ps);
+        if(!user) {
+            document.getElementById('loadingText').classList.remove('hidden'); 
+            document.getElementById('userLoginForm').classList.add('hidden');
+            await fetchData(true);
+            document.getElementById('loadingText').classList.add('hidden');
+            user = allTenants.find(t => t[3] == ph && t[4] == ps);
+        }
+        
         if(user) {
             localStorage.setItem('userRole', 'user');
             localStorage.setItem('userData', JSON.stringify(user));
             updateLastActive();
             document.getElementById('authOverlay').classList.add('hidden');
-            document.getElementById('userView').classList.remove('hidden'); document.getElementById('userView').classList.add('flex');
+            document.getElementById('userView').classList.remove('hidden'); 
+            document.getElementById('userView').classList.add('flex');
             document.getElementById('welcomeUser').innerHTML = `স্বাগতম, <span class="text-blue-600">${user[1]}</span> (ফ্ল্যাট: ${user[2]})`; 
             renderUserInvoices(user);
-        } else { alert("ভুল তথ্য!"); location.reload(); }
+        } else { 
+            alert("ভুল তথ্য!"); 
+            showLogin('user');
+        }
     }
 
     async function fetchData(force = false) {
@@ -438,12 +554,7 @@
             const cacheTime = 60000;
             
             if (!force && localStorage.getItem('cache_time') && (now - localStorage.getItem('cache_time') < cacheTime)) {
-                allTenants = JSON.parse(localStorage.getItem('cache_tenants') || "[]");
-                allInvoices = JSON.parse(localStorage.getItem('cache_invoices') || "[]");
-                allLoans = JSON.parse(localStorage.getItem('cache_loans') || "[]");
-                allExpenses = JSON.parse(localStorage.getItem('cache_expenses') || "[]");
-                allBanks = JSON.parse(localStorage.getItem('cache_banks') || "[]");
-                
+                loadLocalCache();
                 if(role && role !== 'user') { 
                     renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); 
                 }
@@ -452,25 +563,24 @@
 
             if (isDirectInvoice || role === 'user') {
                 const [resT, resI] = await Promise.all([
-                    fetch(SCRIPT_URL + "?action=getTenants" + cacheBuster),
-                    fetch(SCRIPT_URL + "?action=getInvoices" + cacheBuster)
+                    fetch(SCRIPT_URL + "?action=getTenants" + cacheBuster).then(r=>r.json()).catch(()=>[]),
+                    fetch(SCRIPT_URL + "?action=getInvoices" + cacheBuster).then(r=>r.json()).catch(()=>[])
                 ]);
-                allTenants = await resT.json() || [];
-                allInvoices = await resI.json() || [];
-                allLoans = []; allExpenses = []; allBanks = [];
+                allTenants = resT || [];
+                allInvoices = resI || [];
             } else {
                 const [resT, resI, resL, resE, resB] = await Promise.all([
-                    fetch(SCRIPT_URL + "?action=getTenants" + cacheBuster),
-                    fetch(SCRIPT_URL + "?action=getInvoices" + cacheBuster),
-                    fetch(SCRIPT_URL + "?action=getLoans" + cacheBuster).catch(()=>({json:()=>[]})),
-                    fetch(SCRIPT_URL + "?action=getExpenses" + cacheBuster).catch(()=>({json:()=>[]})),
-                    fetch(SCRIPT_URL + "?action=getBanks" + cacheBuster).catch(()=>({json:()=>[]}))
+                    fetch(SCRIPT_URL + "?action=getTenants" + cacheBuster).then(r=>r.json()).catch(()=>[]),
+                    fetch(SCRIPT_URL + "?action=getInvoices" + cacheBuster).then(r=>r.json()).catch(()=>[]),
+                    fetch(SCRIPT_URL + "?action=getLoans" + cacheBuster).then(r=>r.json()).catch(()=>[]),
+                    fetch(SCRIPT_URL + "?action=getExpenses" + cacheBuster).then(r=>r.json()).catch(()=>[]),
+                    fetch(SCRIPT_URL + "?action=getBanks" + cacheBuster).then(r=>r.json()).catch(()=>[])
                 ]);
-                allTenants = await resT.json() || [];
-                allInvoices = await resI.json() || [];
-                allLoans = await resL.json() || [];
-                allExpenses = await resE.json() || [];
-                allBanks = await resB.json() || [];
+                allTenants = resT || [];
+                allInvoices = resI || [];
+                allLoans = resL || [];
+                allExpenses = resE || [];
+                allBanks = resB || [];
             }
 
             localStorage.setItem('cache_tenants', JSON.stringify(allTenants));
@@ -482,8 +592,11 @@
 
             if(role && role !== 'user') { 
                 renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); 
+            } else if(role === 'user') {
+                const uData = JSON.parse(localStorage.getItem('userData'));
+                if(uData) renderUserInvoices(uData);
             }
-        } catch(e) { console.log(e); }
+        } catch(e) { console.log("Fetch Error", e); }
     }
 
     function updateFundCalculation() {
@@ -509,6 +622,7 @@
     }
 
     function handleFlatSelection(flat) { showFlatStatusInForm(flat); renderTenantsByFlat(flat); }
+    
     function renderTenantsByFlat(flat) {
         const listDiv = document.getElementById('allTenantList'); const header = document.getElementById('listHeader');
         if(!flat) { listDiv.innerHTML = 'ফ্ল্যাট সিলেক্ট করলে তালিকা দেখা যাবে'; header.innerText = "ভাড়াটিয়া তালিকা ও কন্ট্রোল"; return; }
@@ -525,14 +639,90 @@
         });
         listDiv.innerHTML = html; applyRoleRestrictions();
     }
-    async function saveTenant(e) { e.preventDefault(); const data = { action: "saveTenant", id: document.getElementById('tId').value || "T-" + Date.now(), name: document.getElementById('tName').value, flat: document.getElementById('tFlat').value, phone: document.getElementById('tPhone').value, pass: document.getElementById('tPass').value, join: document.getElementById('tJoin').value, exit: document.getElementById('tExit').value, status: document.getElementById('tStatus').value }; await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) }); alert("তথ্য সংরক্ষিত!"); fetchData(true); switchTab('dash'); }
-    async function deleteTenant(id) { if(confirm("আপনি কি নিশ্চিতভাবে এই ডাটা ডিলিট করতে চান?")) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "deleteTenant", id: id}) }); alert("ডিলিট রিকোয়েস্ট পাঠানো হয়েছে!"); fetchData(true); } }
-    function editTenant(id) { const t = allTenants.find(x => x[0] == id); if(!t) return; document.getElementById('tId').value = t[0]; document.getElementById('tName').value = t[1]; document.getElementById('tFlat').value = t[2]; document.getElementById('tPhone').value = t[3]; document.getElementById('tPass').value = t[4]; document.getElementById('tJoin').value = t[5] ? t[5].split('T')[0] : ""; document.getElementById('tExit').value = t[6] ? t[6].split('T')[0] : ""; document.getElementById('tStatus').value = t[7]; document.getElementById('formTitle').innerText = "তথ্য এডিট করুন"; document.getElementById('saveBtn').innerText = "আপডেট করুন"; handleFlatSelection(t[2]); switchTab('entry'); }
-    function resetTenantForm() { document.getElementById('tenantForm').reset(); document.getElementById('tId').value = ""; document.getElementById('formFlatStatus').classList.add('hidden'); document.getElementById('allTenantList').innerHTML = ''; }
+
+    async function saveTenant(e) { 
+        e.preventDefault(); 
+        const data = { 
+            action: "saveTenant", 
+            id: document.getElementById('tId').value || "T-" + Date.now(), 
+            name: document.getElementById('tName').value, 
+            flat: document.getElementById('tFlat').value, 
+            phone: document.getElementById('tPhone').value, 
+            pass: document.getElementById('tPass').value, 
+            join: document.getElementById('tJoin').value, 
+            exit: document.getElementById('tExit').value, 
+            status: document.getElementById('tStatus').value 
+        }; 
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) }); 
+        alert("তথ্য সংরক্ষিত!"); 
+        fetchData(true); 
+        switchTab('dash'); 
+    }
+
+    async function deleteTenant(id) { 
+        if(confirm("আপনি কি নিশ্চিতভাবে এই ডাটা ডিলিট করতে চান?")) { 
+            await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "deleteTenant", id: id}) }); 
+            alert("ডিলিট রিকোয়েস্ট পাঠানো হয়েছে!"); 
+            fetchData(true); 
+        } 
+    }
+
+    function editTenant(id) { 
+        const t = allTenants.find(x => x[0] == id); 
+        if(!t) return; 
+        document.getElementById('tId').value = t[0]; 
+        document.getElementById('tName').value = t[1]; 
+        document.getElementById('tFlat').value = t[2]; 
+        document.getElementById('tPhone').value = t[3]; 
+        document.getElementById('tPass').value = t[4]; 
+        document.getElementById('tJoin').value = t[5] ? t[5].split('T')[0] : ""; 
+        document.getElementById('tExit').value = t[6] ? t[6].split('T')[0] : ""; 
+        document.getElementById('tStatus').value = t[7]; 
+        document.getElementById('formTitle').innerText = "তথ্য এডিট করুন"; 
+        document.getElementById('saveBtn').innerText = "আপডেট করুন"; 
+        handleFlatSelection(t[2]); 
+        switchTab('entry'); 
+    }
+
+    function resetTenantForm() { 
+        document.getElementById('tenantForm').reset(); 
+        document.getElementById('tId').value = ""; 
+        document.getElementById('formTitle').innerText = "ভাড়াটিয়া ম্যানেজমেন্ট";
+        document.getElementById('saveBtn').innerText = "সেভ করুন";
+        document.getElementById('formFlatStatus').classList.add('hidden'); 
+        document.getElementById('allTenantList').innerHTML = 'ফ্ল্যাট সিলেক্ট করলে তালিকা দেখা যাবে'; 
+    }
+
     function autoInactive(el) { if(el.value) document.getElementById('tStatus').value = "Inactive"; }
-    function showFlatStatusInForm(flat) { if(!flat) { document.getElementById('formFlatStatus').classList.add('hidden'); return; } const hist = allTenants.filter(t => t[2] === flat); const current = hist.find(t => t[7] === 'Active'); let html = `<b>ফ্ল্যাট ${flat} এর অবস্থা:</b><br>`; html += current ? `<span class="text-red-600 block mt-1">ভাড়া আছেন: ${current[1]}</span>` : `<span class="text-green-600 block mt-1">বর্তমানে ফ্ল্যাটটি খালি আছে।</span>`; document.getElementById('formFlatStatus').innerHTML = html; document.getElementById('formFlatStatus').classList.remove('hidden'); }
-    function showFlatHistory(flat) { const hist = allTenants.filter(t => t[2] === flat); document.getElementById('histTitle').innerText = `ফ্ল্যাট ${flat} এর ইতিহাস`; let html = ''; [...hist].reverse().forEach(t => { html += `<div class="bg-slate-50 p-3 rounded-lg border hist-item"><p class="font-bold text-slate-700">${t[1]}</p><div class="flex justify-between text-xs text-slate-500 mt-1"><span>যোগদান: ${formatDate(t[5])}</span><span>বিদায়: ${formatDate(t[6])}</span></div><p class="text-xs mt-1">অবস্থা: <span class="${t[7]=='Active'?'text-green-600':'text-red-500'} font-bold">${t[7]}</span></p></div>`; }); document.getElementById('histContent').innerHTML = html || "কোন ইতিহাস পাওয়া যায়নি।"; document.getElementById('historyModal').classList.remove('hidden'); }
-    function filterHistory() { const val = document.getElementById('histFilter').value.toLowerCase(); document.querySelectorAll('.hist-item').forEach(item => { item.style.display = item.innerText.toLowerCase().includes(val) ? "block" : "none"; }); }
+    
+    function showFlatStatusInForm(flat) { 
+        if(!flat) { document.getElementById('formFlatStatus').classList.add('hidden'); return; } 
+        const hist = allTenants.filter(t => t[2] === flat); 
+        const current = hist.find(t => t[7] === 'Active'); 
+        let html = `<b>ফ্ল্যাট ${flat} এর অবস্থা:</b><br>`; 
+        html += current ? `<span class="text-red-600 block mt-1">ভাড়া আছেন: ${current[1]}</span>` : `<span class="text-green-600 block mt-1">বর্তমানে ফ্ল্যাটটি খালি আছে।</span>`; 
+        document.getElementById('formFlatStatus').innerHTML = html; 
+        document.getElementById('formFlatStatus').classList.remove('hidden'); 
+    }
+
+    function showFlatHistory(flat) { 
+        const hist = allTenants.filter(t => t[2] === flat); 
+        document.getElementById('histTitle').innerText = `ফ্ল্যাট ${flat} এর ইতিহাস`; 
+        let html = ''; 
+        [...hist].reverse().forEach(t => { 
+            html += `<div class="bg-slate-50 p-3 rounded-lg border hist-item"><p class="font-bold text-slate-700">${t[1]}</p><div class="flex justify-between text-xs text-slate-500 mt-1"><span>যোগদান: ${formatDate(t[5])}</span><span>বিদায়: ${formatDate(t[6])}</span></div><p class="text-xs mt-1">অবস্থা: <span class="${t[7]=='Active'?'text-green-600':'text-red-500'} font-bold">${t[7]}</span></p></div>`; 
+        }); 
+        document.getElementById('histContent').innerHTML = html || "<div class='text-center text-slate-400 py-4'>কোন ইতিহাস পাওয়া যায়নি।</div>"; 
+        document.getElementById('historyModal').classList.remove('hidden'); 
+    }
+
+    function filterHistory() { 
+        const val = document.getElementById('histFilter').value.toLowerCase(); 
+        document.querySelectorAll('.hist-item').forEach(item => { 
+            item.style.display = item.innerText.toLowerCase().includes(val) ? "block" : "none"; 
+        }); 
+    }
+
     function closeModal() { document.getElementById('historyModal').classList.add('hidden'); }
 
     function renderDashboard() {
@@ -549,12 +739,33 @@
 
     function renderInvoiceSelect() {
         let opt = '<option value="">নির্বাচন করুন</option>';
-        allTenants.forEach(t => { if(t[7] === 'Active') opt += `<option value="${t[0]}|${t[3]}|${t[1]}">${t[1]} (${t[2]})</option>`; });
+        const activeTenants = allTenants.filter(t => t[7] === 'Active');
+        activeTenants.sort((a, b) => {
+            let indexA = FLATS_LIST.indexOf(a[2]);
+            let indexB = FLATS_LIST.indexOf(b[2]);
+            if (indexA === -1) indexA = 999;
+            if (indexB === -1) indexB = 999;
+            return indexA - indexB;
+        });
+
+        activeTenants.forEach(t => { 
+            opt += `<option value="${t[0]}|${t[3]}|${t[1]}">${t[2]} - ${t[1]} (${t[3]})</option>`; 
+        });
         document.getElementById('invTenant').innerHTML = opt;
     }
 
     function resetInvoiceForm() {
-        document.getElementById('invIdHidden').value = ""; document.getElementById('invTenant').value = ""; document.getElementById('invMonth').value = "জানুয়ারি"; document.getElementById('invYear').value = "২০২৬"; document.getElementById('invRent').value = ""; document.getElementById('invElec').value = ""; document.getElementById('invWater').value = ""; document.getElementById('invService').value = ""; document.getElementById('invDue').value = ""; document.getElementById('invAdv').value = ""; document.getElementById('btnSaveInvoice').innerText = "সেভ ও হোয়াটসঅ্যাপ লিংক পাঠান";
+        document.getElementById('invIdHidden').value = ""; 
+        document.getElementById('invCreatedDateHidden').value = "";
+        document.getElementById('invTenant').value = ""; 
+        document.getElementById('invRent').value = ""; 
+        document.getElementById('invElec').value = ""; 
+        document.getElementById('invWater').value = ""; 
+        document.getElementById('invService').value = ""; 
+        document.getElementById('invDue').value = ""; 
+        document.getElementById('invAdv').value = ""; 
+        document.getElementById('btnSaveInvoice').innerText = "সেভ ও হোয়াটসঅ্যাপ লিংক পাঠান";
+        autoSetInvoiceMonthYear();
     }
 
     function editInvoice(id) {
@@ -562,33 +773,106 @@
         let rIdx = 4, eIdx = 5, wIdx = 6, sIdx = 7, aIdx = 8, dIdx = 9;
         if(!String(inv[0]).startsWith('INV-')) { rIdx=3; eIdx=4; wIdx=5; sIdx=6; aIdx=7; dIdx=8; }
         document.getElementById('invIdHidden').value = inv[0];
+        document.getElementById('invCreatedDateHidden').value = inv[11] || "";
+        
         let sel = document.getElementById('invTenant');
-        for(let i=0; i<sel.options.length; i++) { if(sel.options[i].value.startsWith(inv[1] + '|')) { sel.selectedIndex = i; break; } }
-        document.getElementById('invMonth').value = inv[2]; document.getElementById('invYear').value = inv[3]; document.getElementById('invRent').value = inv[rIdx]; document.getElementById('invElec').value = inv[eIdx]; document.getElementById('invWater').value = inv[wIdx]; document.getElementById('invService').value = inv[sIdx]; document.getElementById('invAdv').value = inv[aIdx]; document.getElementById('invDue').value = inv[dIdx];
-        document.getElementById('btnSaveInvoice').innerText = "ইনভয়েস আপডেট করুন"; switchTab('invoice'); window.scrollTo({ top: 0, behavior: 'smooth' });
+        for(let i=0; i<sel.options.length; i++) { 
+            if(sel.options[i].value.startsWith(inv[1] + '|')) { 
+                sel.selectedIndex = i; 
+                break; 
+            } 
+        }
+        document.getElementById('invMonth').value = inv[2]; 
+        document.getElementById('invYear').value = inv[3]; 
+        document.getElementById('invRent').value = inv[rIdx]; 
+        document.getElementById('invElec').value = inv[eIdx]; 
+        document.getElementById('invWater').value = inv[wIdx]; 
+        document.getElementById('invService').value = inv[sIdx]; 
+        document.getElementById('invAdv').value = inv[aIdx]; 
+        document.getElementById('invDue').value = inv[dIdx];
+        document.getElementById('btnSaveInvoice').innerText = "ইনভয়েস আপডেট করুন"; 
+        switchTab('invoice'); 
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function deleteInvoiceFromTable(id) {
         if(confirm("ইনভয়েসটি ডিলিট করতে চান?")) {
             await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "deleteInvoice", id: id}) });
-            alert("ডিলিট সম্পন্ন!"); fetchData(true);
+            alert("ডিলিট সম্পন্ন!"); 
+            fetchData(true);
         }
+    }
+
+    function sendWhatsAppInvoice(id) {
+        const inv = allInvoices.find(x => x[0] == id);
+        if (!inv) return alert("ইনভয়েস পাওয়া যায়নি!");
+        const t = allTenants.find(x => x[0] == inv[1]);
+        if (!t) return alert("ভাড়াটিয়ার তথ্য পাওয়া যায়নি!");
+        
+        let tIdx = 10;
+        if(!String(inv[0]).startsWith('INV-')) tIdx = 9;
+        const total = inv[tIdx];
+        const month = inv[2];
+        const year = inv[3];
+        
+        const appUrl = window.location.href.split('#')[0].split('?')[0];
+        const invLink = `${appUrl}?t=${t[0]}&m=${month}&y=${year}`;
+        const msg = `আসসালামু আলাইকুম প্রিয় ${t[1]},\nআপনার ${month} ${year} মাসের বাসা ভাড়ার ইনভয়েস তৈরি হয়েছে।\nমোট বিল: ${toBanglaWord(total)}/-\nবিকাশ/নগদ পেমেন্ট: ${BKASH_NO}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন। "পানির সঠিক ব্যবহার নিশ্চিত করুন, অপচয় রোধে সচেতন হোন।" ধন্যবাদ।\nস্বপ্নবিলাস`;
+        
+        let ph = String(t[3]).trim().replace(/[^0-9]/g, '');
+        if(ph.length === 11 && ph.startsWith('01')) ph = '88' + ph;
+        window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
     async function saveInvoice(e) {
         e.preventDefault(); 
-        const t = document.getElementById('invTenant').value.split('|'); 
+        const tVal = document.getElementById('invTenant').value;
+        if(!tVal) return alert("ভাড়াটিয়া সিলেক্ট করুন!");
+        const t = tVal.split('|'); 
         const month = document.getElementById('invMonth').value; 
         const year = document.getElementById('invYear').value;
-        const total = (Number(document.getElementById('invRent').value) + Number(document.getElementById('invElec').value||0) + Number(document.getElementById('invWater').value||0) + Number(document.getElementById('invService').value||0) + Number(document.getElementById('invDue').value||0)) - Number(document.getElementById('invAdv').value||0);
+        const rent = Number(document.getElementById('invRent').value) || 0;
+        const elec = Number(document.getElementById('invElec').value) || 0;
+        const water = Number(document.getElementById('invWater').value) || 0;
+        const service = Number(document.getElementById('invService').value) || 0;
+        const due = Number(document.getElementById('invDue').value) || 0;
+        const adv = Number(document.getElementById('invAdv').value) || 0;
+        const total = (rent + elec + water + service + due) - adv;
+        
         const existingId = document.getElementById('invIdHidden').value;
         const uniqueInvId = existingId || "INV-" + Date.now();
-        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({action: "saveInvoice", id: uniqueInvId, tId: t[0], month, year: year, rent: document.getElementById('invRent').value, elec: document.getElementById('invElec').value||0, water: document.getElementById('invWater').value||0, service: document.getElementById('invService').value||0, adv: document.getElementById('invAdv').value||0, due: document.getElementById('invDue').value||0, total})});
+        const existingDate = document.getElementById('invCreatedDateHidden').value || new Date().toISOString();
+
+        await fetch(SCRIPT_URL, { 
+            method: "POST", 
+            body: JSON.stringify({
+                action: "saveInvoice", 
+                id: uniqueInvId, 
+                tId: t[0], 
+                month: month, 
+                year: year, 
+                rent: rent, 
+                elec: elec, 
+                water: water, 
+                service: service, 
+                adv: adv, 
+                due: due, 
+                total: total,
+                date: existingDate
+            })
+        });
+
         const appUrl = window.location.href.split('#')[0].split('?')[0];
         const invLink = `${appUrl}?t=${t[0]}&m=${month}&y=${year}`;
-        const msg = `আসসালামু আলাইকুম প্রিয় ${t[2]},\nআপনার গত ${month} মাসের ইনভয়েস তৈরি হয়েছে।\nমোট বিল: ${total}/-\nবিকাশ/নগদ পেমেন্ট: ${BKASH_NO}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন। "পানির সঠিক ব্যবহার নিশ্চিত করুন, অপচয় রোধে সচেতন হোন।" ধন্যবাদ।`;
-        window.open(`https://wa.me/${t[1]}?text=${encodeURIComponent(msg)}`); 
-        resetInvoiceForm(); fetchData(true); switchTab('report');
+        const msg = `আসসালামু আলাইকুম প্রিয় ${t[2]},\nআপনার ${month} ${year} মাসের বাসা ভাড়ার ইনভয়েস তৈরি হয়েছে।\nমোট বিল: ${toBanglaWord(total)}/-\nবিকাশ/নগদ পেমেন্ট: ${BKASH_NO}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন। "পানির সঠিক ব্যবহার নিশ্চিত করুন, অপচয় রোধে সচেতন হোন।" ধন্যবাদ।\nস্বপ্নবিলাস`;
+        
+        let ph = String(t[1]).trim().replace(/[^0-9]/g, '');
+        if(ph.length === 11 && ph.startsWith('01')) ph = '88' + ph;
+        window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank'); 
+
+        resetInvoiceForm(); 
+        fetchData(true); 
+        switchTab('report');
     }
 
     async function saveLoan() {
@@ -682,15 +966,16 @@
 
     function renderReportTable() {
         if(allInvoices.length < 2) return;
-        let html = `<table class="w-full text-left border-collapse min-w-[600px]"><thead class="sticky top-0"><tr class="bg-slate-800 text-white text-[11px] md:text-xs"><th class="p-2 border">নাম/ফ্ল্যাট</th><th class="p-2 border">মাস</th><th class="p-2 border text-right">ভাড়া</th><th class="p-2 border text-right">বিদ্যুৎ</th><th class="p-2 border text-right">পানি</th><th class="p-2 border text-right">সার্ভিস</th><th class="p-2 border text-right">বকেয়া</th><th class="p-2 border text-right font-bold">মোট</th><th class="p-2 border text-center admin-only">অ্যাকশন</th></tr></thead><tbody>`;
+        let html = `<table class="w-full text-left border-collapse min-w-[650px]"><thead class="sticky top-0"><tr class="bg-slate-800 text-white text-[11px] md:text-xs"><th class="p-2 border">নাম/ফ্ল্যাট</th><th class="p-2 border">মাস</th><th class="p-2 border text-right">ভাড়া</th><th class="p-2 border text-right">বিদ্যুৎ</th><th class="p-2 border text-right">পানি</th><th class="p-2 border text-right">সার্ভিস</th><th class="p-2 border text-right">বকেয়া</th><th class="p-2 border text-right font-bold">মোট</th><th class="p-2 border text-center admin-only">অ্যাকশন</th></tr></thead><tbody>`;
         let sums = { rent:0, elec:0, water:0, service:0, due:0, total:0 };
         let rIdx = 4, eIdx = 5, wIdx = 6, sIdx = 7, dIdx = 9, tIdx = 10;
         if(!String(allInvoices[1][0]).startsWith('INV-')) { rIdx=3; eIdx=4; wIdx=5; sIdx=6; dIdx=8; tIdx=9; }
         allInvoices.slice(1).reverse().forEach(inv => {
             const t = allTenants.find(t => t[0] == inv[1]);
             sums.rent += Number(inv[rIdx]); sums.elec += Number(inv[eIdx]); sums.water += Number(inv[wIdx]); sums.service += Number(inv[sIdx]); sums.due += Number(inv[dIdx]); sums.total += Number(inv[tIdx]);
-            html += `<tr class="border-b text-[11px] md:text-xs hover:bg-slate-50"><td class="p-2 border font-bold">${t?t[1]+'<br><span class="text-[9px] text-slate-400">('+t[2]+')</span>':'N/A'}</td><td class="p-2 border">${inv[2]}</td><td class="p-2 border text-right">${toBanglaWord(inv[rIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[eIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[wIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[sIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[dIdx])}</td><td class="p-2 border text-right font-bold text-blue-600">${toBanglaWord(inv[tIdx])}</td>
+            html += `<tr class="border-b text-[11px] md:text-xs hover:bg-slate-50"><td class="p-2 border font-bold">${t?t[1]+'<br><span class="text-[9px] text-slate-400">('+t[2]+')</span>':'N/A'}</td><td class="p-2 border">${inv[2]} ${inv[3]||''}</td><td class="p-2 border text-right">${toBanglaWord(inv[rIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[eIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[wIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[sIdx])}</td><td class="p-2 border text-right">${toBanglaWord(inv[dIdx])}</td><td class="p-2 border text-right font-bold text-blue-600">${toBanglaWord(inv[tIdx])}</td>
             <td class="p-2 border text-center admin-only">
+                <button onclick="sendWhatsAppInvoice('${inv[0]}')" class="text-green-600 bg-green-50 px-2 py-1 rounded hover:bg-green-600 hover:text-white transition mr-1" title="হোয়াটসঅ্যাপে পাঠান"><i class="fab fa-whatsapp"></i></button>
                 <button onclick="editInvoice('${inv[0]}')" class="text-blue-500 bg-blue-50 px-2 py-1 rounded hover:bg-blue-500 hover:text-white transition mr-1" title="এডিট"><i class="fas fa-edit"></i></button>
                 <button onclick="deleteInvoiceFromTable('${inv[0]}')" class="text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-500 hover:text-white transition" title="ডিলিট"><i class="fas fa-trash-alt"></i></button>
             </td></tr>`;
@@ -737,13 +1022,14 @@
     }
 
     function renderBeautifulInvoice(inv, user, containerId, r=4, e=5, w=6, s=7, a=8, d=9, t=10) {
-        const monthsBn = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
-        let cIdx = monthsBn.indexOf(inv[2]);
+        let cIdx = BN_MONTHS.indexOf(inv[2]);
         let nIdx = (cIdx + 1) % 12;
-        let cYearEng = Number(String(inv[3]).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d)));
+        let cYearEng = Number(toEngDigits(inv[3]));
         let nYearEng = (cIdx === 11) ? cYearEng + 1 : cYearEng;
-        let nextMonthBn = monthsBn[nIdx];
+        let nextMonthBn = BN_MONTHS[nIdx];
         let nextYearBn = toBanglaWord(nYearEng);
+        
+        let issueDateStr = inv[11] || new Date();
 
         const container = document.getElementById(containerId);
         container.innerHTML = `
@@ -756,7 +1042,7 @@
                             <p class="text-sm text-slate-500 font-semibold mt-1 bg-slate-100 px-3 py-1 rounded-full inline-block">মাসিক বাসা ভাড়া ইনভয়েস</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-sm text-slate-500">ইস্যু তারিখ: <b class="text-slate-800">${formatDate(new Date())}</b></p>
+                            <p class="text-sm text-slate-500">ইস্যু তারিখ: <b class="text-slate-800">${formatDate(issueDateStr)}</b></p>
                             <div class="mt-2 bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg inline-block text-center">
                                 <p class="text-xs text-slate-500">বিলের মাস</p>
                                 <p class="text-lg font-bold text-blue-700">${inv[2]} ${inv[3]}</p>
@@ -821,8 +1107,10 @@
     }
 
     function switchTab(tab) {
-        document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden')); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(tab + 'Sec').classList.remove('hidden'); document.getElementById('tab-' + tab).classList.add('active');
+        document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden')); 
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tab + 'Sec').classList.remove('hidden'); 
+        document.getElementById('tab-' + tab).classList.add('active');
         if(tab !== 'entry') {
             resetTenantForm();
             resetInvoiceForm();
@@ -830,6 +1118,9 @@
             resetBankForm();
             resetLoanForm();
             resetLoanReturnForm();
+        }
+        if(tab === 'invoice') {
+            autoSetInvoiceMonthYear();
         }
     }
 
