@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap');
         body { font-family: 'Hind Siliguri', sans-serif; background: #f1f5f9; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         .sidebar { background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); }
         .nav-btn { transition: 0.3s; color: #94a3b8; cursor: pointer; border-left: 4px solid transparent; }
@@ -22,7 +22,7 @@
         .relative-z { position: relative; z-index: 10; }
         
         /* সংখ্যা স্পষ্টভাবে পড়ার জন্য বিশেষ রেন্ডারিং */
-        .bn-num { font-feature-settings: "locl" 1; letter-spacing: 0.02em; font-weight: 600; }
+        .bn-num { font-family: 'Noto Sans Bengali', 'Hind Siliguri', sans-serif; font-feature-settings: "locl" 1; letter-spacing: 0.04em; font-weight: 600; display: inline-block; line-height: 1.2; }
 
         @media print {
             html, body {
@@ -43,20 +43,20 @@
                 min-width: 100% !important; 
                 box-shadow: none !important; 
                 border: none !important; 
-                padding: 10px 20px !important; 
+                padding: 8px 16px !important; 
                 margin: 0 !important; 
                 border-radius: 0 !important; 
                 page-break-inside: avoid !important;
                 page-break-after: avoid !important;
                 page-break-before: avoid !important;
                 break-inside: avoid !important;
-                transform: scale(0.96);
+                transform: scale(0.92);
                 transform-origin: top center;
             }
             .no-print { display: none !important; }
             @page { 
                 size: A4 portrait; 
-                margin: 4mm 6mm !important; 
+                margin: 0 !important; 
             }
         }
         @media (min-width: 768px) { .invoice-print-area { padding: 32px 36px; } }
@@ -163,7 +163,7 @@
         </div>
     </div>
 
-    <section id="dashSec" class="page-content">
+    <section id="dashSec" class="page-content hidden">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 md:mb-8 gap-4">
             <h2 class="text-2xl md:text-3xl font-bold text-slate-800">ড্যাশবোর্ড ওভারভিউ</h2>
             <div id="dashCounter" class="flex flex-wrap gap-2 md:gap-4"></div>
@@ -629,7 +629,7 @@
             } else {
                 const [resT, resI, resL, resE, resB] = await Promise.all([
                     fetch(SCRIPT_URL + "?action=getTenants" + cacheBuster).then(r=>r.json()).catch(()=>[]),
-                    fetch(SCRIPT_URL + "?action=getInvoices" + cacheBuster).then(r=>r.json()).catch(()=>[]),
+                    fetch(SCRIPT_URL + "?action=getInvoices" + cacheBuster).then(r=>r.json()).catch(()=>[])
                     fetch(SCRIPT_URL + "?action=getLoans" + cacheBuster).then(r=>r.json()).catch(()=>[]),
                     fetch(SCRIPT_URL + "?action=getExpenses" + cacheBuster).then(r=>r.json()).catch(()=>[]),
                     fetch(SCRIPT_URL + "?action=getBanks" + cacheBuster).then(r=>r.json()).catch(()=>[])
