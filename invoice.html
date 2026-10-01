@@ -172,7 +172,7 @@
 
     <section id="invoiceSec" class="page-content hidden">
         <div class="max-w-xl mx-auto bg-white p-5 md:p-8 rounded-2xl shadow-lg admin-only">
-            <h2 class="text-xl md:text-2xl font-bold mb-6">ইনভয়েস তৈরি / এডিট</h2>
+            <h2 class="text-xl md:text-2xl font-bold mb-6" id="invoiceFormHeading">ইনভয়েস তৈরি / এডিট</h2>
             <form onsubmit="saveInvoice(event)" class="space-y-4">
                 <input type="hidden" id="invIdHidden">
                 <input type="hidden" id="invCreatedDateHidden">
@@ -739,7 +739,7 @@
 
     function renderInvoiceSelect() {
         let opt = '<option value="">নির্বাচন করুন</option>';
-        const activeTenants = allTenants.filter(t => t[7] === 'Active');
+        const activeTenants = [...allTenants].filter(t => t[7] === 'Active');
         activeTenants.sort((a, b) => {
             let indexA = FLATS_LIST.indexOf(a[2]);
             let indexB = FLATS_LIST.indexOf(b[2]);
@@ -764,34 +764,70 @@
         document.getElementById('invService').value = ""; 
         document.getElementById('invDue').value = ""; 
         document.getElementById('invAdv').value = ""; 
+        document.getElementById('invoiceFormHeading').innerText = "ইনভয়েস তৈরি / এডিট";
         document.getElementById('btnSaveInvoice').innerText = "সেভ ও হোয়াটসঅ্যাপ লিংক পাঠান";
         autoSetInvoiceMonthYear();
     }
 
     function editInvoice(id) {
-        const inv = allInvoices.find(x => x[0] == id); if(!inv) return;
+        const inv = allInvoices.find(x => x[0] == id); 
+        if(!inv) return;
+        
         let rIdx = 4, eIdx = 5, wIdx = 6, sIdx = 7, aIdx = 8, dIdx = 9;
         if(!String(inv[0]).startsWith('INV-')) { rIdx=3; eIdx=4; wIdx=5; sIdx=6; aIdx=7; dIdx=8; }
+
+        renderInvoiceSelect();
+
         document.getElementById('invIdHidden').value = inv[0];
         document.getElementById('invCreatedDateHidden').value = inv[11] || "";
         
-        let sel = document.getElementById('invTenant');
+        const tenantId = String(inv[1]).trim();
+        const sel = document.getElementById('invTenant');
+        let matched = false;
+        
         for(let i=0; i<sel.options.length; i++) { 
-            if(sel.options[i].value.startsWith(inv[1] + '|')) { 
+            if(sel.options[i].value.startsWith(tenantId + '|')) { 
                 sel.selectedIndex = i; 
+                matched = true;
                 break; 
             } 
         }
+
+        if(!matched) {
+            const tenantObj = allTenants.find(t => String(t[0]).trim() === tenantId);
+            if(tenantObj) {
+                const opt = new Option(`${tenantObj[2]} - ${tenantObj[1]} (${tenantObj[3]})`, `${tenantObj[0]}|${tenantObj[3]}|${tenantObj[1]}`, true, true);
+                sel.add(opt);
+            }
+        }
+        
         document.getElementById('invMonth').value = inv[2]; 
-        document.getElementById('invYear').value = inv[3]; 
-        document.getElementById('invRent').value = inv[rIdx]; 
-        document.getElementById('invElec').value = inv[eIdx]; 
-        document.getElementById('invWater').value = inv[wIdx]; 
-        document.getElementById('invService').value = inv[sIdx]; 
-        document.getElementById('invAdv').value = inv[aIdx]; 
-        document.getElementById('invDue').value = inv[dIdx];
+        
+        const ySel = document.getElementById('invYear');
+        const invYearStr = String(inv[3]);
+        let yearMatched = false;
+        for(let i=0; i<ySel.options.length; i++) {
+            if(ySel.options[i].value === invYearStr || toEngDigits(ySel.options[i].value) === toEngDigits(invYearStr)) {
+                ySel.selectedIndex = i;
+                yearMatched = true;
+                break;
+            }
+        }
+        if(!yearMatched) {
+            ySel.add(new Option(invYearStr, invYearStr, true, true));
+        }
+
+        document.getElementById('invRent').value = inv[rIdx] !== undefined ? inv[rIdx] : ""; 
+        document.getElementById('invElec').value = inv[eIdx] !== undefined ? inv[eIdx] : ""; 
+        document.getElementById('invWater').value = inv[wIdx] !== undefined ? inv[wIdx] : ""; 
+        document.getElementById('invService').value = inv[sIdx] !== undefined ? inv[sIdx] : ""; 
+        document.getElementById('invAdv').value = inv[aIdx] !== undefined ? inv[aIdx] : ""; 
+        document.getElementById('invDue').value = inv[dIdx] !== undefined ? inv[dIdx] : "";
+
+        document.getElementById('invoiceFormHeading').innerText = "ইনভয়েস এডিট করুন";
         document.getElementById('btnSaveInvoice').innerText = "ইনভয়েস আপডেট করুন"; 
-        switchTab('invoice'); 
+        
+        switchTab('invoice', true); 
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -840,6 +876,7 @@
         const total = (rent + elec + water + service + due) - adv;
         
         const existingId = document.getElementById('invIdHidden').value;
+        const isEditing = Boolean(existingId);
         const uniqueInvId = existingId || "INV-" + Date.now();
         const existingDate = document.getElementById('invCreatedDateHidden').value || new Date().toISOString();
 
@@ -862,13 +899,18 @@
             })
         });
 
+        alert(isEditing ? "ইনভয়েস সফলভাবে আপডেট হয়েছে!" : "ইনভয়েস সংরক্ষিত হয়েছে!");
+
         const appUrl = window.location.href.split('#')[0].split('?')[0];
         const invLink = `${appUrl}?t=${t[0]}&m=${month}&y=${year}`;
-        const msg = `আসসালামু আলাইকুম প্রিয় ${t[2]},\nআপনার ${month} ${year} মাসের বাসা ভাড়ার ইনভয়েস তৈরি হয়েছে।\nমোট বিল: ${toBanglaWord(total)}/-\nবিকাশ/নগদ পেমেন্ট: ${BKASH_NO}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন। "পানির সঠিক ব্যবহার নিশ্চিত করুন, অপচয় রোধে সচেতন হোন।" ধন্যবাদ।\nস্বপ্নবিলাস`;
+        const msg = `আসসালামু আলাইকুম প্রিয় ${t[2]},\nআপনার ${month} ${year} মাসের বাসা ভাড়ার ইনভয়েস ${isEditing ? 'আপডেট' : 'তৈরি'} হয়েছে।\nমোট বিল: ${toBanglaWord(total)}/-\nবিকাশ/নগদ পেমেন্ট: ${BKASH_NO}\n\nঅনলাইনে ইনভয়েস দেখতে ও পিডিএফ ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:\n${invLink}\n\nঅনুগ্রহ করে ১০ তারিখের মধ্যে পরিশোধ করুন। "পানির সঠিক ব্যবহার নিশ্চিত করুন, অপচয় রোধে সচেতন হোন।" ধন্যবাদ।\nস্বপ্নবিলাস`;
         
         let ph = String(t[1]).trim().replace(/[^0-9]/g, '');
         if(ph.length === 11 && ph.startsWith('01')) ph = '88' + ph;
-        window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank'); 
+        
+        if(!isEditing || confirm("আপডেট হওয়া ইনভয়েস লিংক কি ভাড়াটিয়াকে হোয়াটসঅ্যাপে পাঠাতে চান?")) {
+            window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
 
         resetInvoiceForm(); 
         fetchData(true); 
@@ -1106,20 +1148,27 @@
         setTimeout(() => { el.classList.remove('print-area'); }, 1000);
     }
 
-    function switchTab(tab) {
+    function switchTab(tab, isEditingInvoice = false) {
         document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden')); 
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(tab + 'Sec').classList.remove('hidden'); 
-        document.getElementById('tab-' + tab).classList.add('active');
+        const navBtn = document.getElementById('tab-' + tab);
+        if(navBtn) navBtn.classList.add('active');
+        
         if(tab !== 'entry') {
             resetTenantForm();
-            resetInvoiceForm();
             resetExpenseForm();
             resetBankForm();
             resetLoanForm();
             resetLoanReturnForm();
         }
-        if(tab === 'invoice') {
+        
+        if(tab !== 'invoice' && !isEditingInvoice) {
+            resetInvoiceForm();
+        }
+
+        if(tab === 'invoice' && !isEditingInvoice) {
+            resetInvoiceForm();
             autoSetInvoiceMonthYear();
         }
     }
