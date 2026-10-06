@@ -2,8 +2,20 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>স্বপ্নবিলাস | ফ্ল্যাট ম্যানেজমেন্ট সিস্টেম</title>
+    
+    <!-- PWA ও মোবাইল অ্যাপ মেটা ট্যাগ (Android & iOS) -->
+    <meta name="theme-color" content="#1e293b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="স্বপ্নবিলাস">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/609/609803.png">
+    
+    <!-- ইনলাইন PWA Manifest (কোনো বাড়তি ফাইল ছাড়াই সরাসরি অ্যাপ ইন্সটল হবে) -->
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22%E0%A6%B8%E0%A7%8D%E0%A6%AC%E0%A6%AA%E0%A7%8D%E0%A6%A8%E0%A6%AC%E0%A6%BF%E0%A6%B2%E0%A6%BE%E0%A6%B8%20%E0%A6%AB%E0%A7%8D%E0%A6%B2%E0%A7%8D%E0%A6%AF%E0%A6%BE%E0%A6%9F%20%E0%A6%AE%E0%A7%8D%E0%A6%AF%E0%A6%BE%E0%A6%A8%E0%A7%87%E0%A6%9C%E0%A6%AE%E0%A7%87%E0%A6%A8%E0%A7%8D%E0%A6%9F%22%2C%22short_name%22%3A%22%E0%A6%B8%E0%A7%8D%E0%A6%AC%E0%A6%AA%E0%A7%8D%E0%A6%A8%E0%A6%AC%E0%A6%BF%E0%A6%B2%E0%A6%BE%E0%A6%B8%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%231e293b%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F609%2F609803.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -354,13 +366,13 @@
 </main>
 
 <div id="historyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+    <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
         <div class="flex justify-between items-center mb-4 border-b pb-2">
             <h3 id="histTitle" class="font-bold text-lg text-slate-800">ফ্ল্যাট হিস্ট্রি</h3>
-            <button onclick="closeModal()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-lg"></i></button>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-red-500 p-2"><i class="fas fa-times text-lg"></i></button>
         </div>
-        <input type="text" id="histFilter" oninput="filterHistory()" placeholder="ফিল্টার বা সার্চ..." class="w-full p-2 border rounded-lg text-sm mb-3">
-        <div id="histContent" class="space-y-2 max-h-72 overflow-y-auto"></div>
+        <input type="text" id="histFilter" oninput="filterHistory()" placeholder="ফিল্টার বা সার্চ..." class="w-full p-2.5 border rounded-xl text-sm mb-3 outline-none focus:border-blue-500">
+        <div id="histContent" class="space-y-2.5 max-h-80 overflow-y-auto pr-1"></div>
     </div>
 </div>
 
@@ -369,7 +381,7 @@
     <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
         <div class="flex justify-between items-center mb-4 border-b pb-2">
             <h3 class="font-bold text-lg text-purple-700"><i class="fab fa-whatsapp mr-2 text-green-500"></i>আলাদা ভাড়াটিয়াকে নোটিশ পাঠান</h3>
-            <button onclick="closeNoticeTenantModal()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-lg"></i></button>
+            <button onclick="closeNoticeTenantModal()" class="text-slate-400 hover:text-red-500 p-2"><i class="fas fa-times text-lg"></i></button>
         </div>
         <div class="bg-purple-50 p-3 rounded-xl mb-4 text-xs text-purple-900 border border-purple-200">
             <b class="block mb-1 font-bold text-purple-800">নোটিশ বার্তা:</b>
@@ -404,13 +416,74 @@
     const FLATS_LIST = ["A-1", "A-2", "A-3", "A-4", "B-1", "B-2", "B-3", "B-4", "C-1", "C-2", "C-3", "D-1", "D-2", "G-1"];
     const BN_MONTHS = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
 
+    // --- ১। PWA Service Worker রেজিস্ট্রেশন (অফলাইন সাপোর্ট ও অ্যাপ ইন্সটল) ---
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            const swCode = `
+                const CACHE_NAME = 'shopnobilash-cache-v1';
+                self.addEventListener('install', e => { self.skipWaiting(); });
+                self.addEventListener('activate', e => { e.waitUntil(clients.claim()); });
+                self.addEventListener('fetch', e => {
+                    if (e.request.method === 'GET' && !e.request.url.includes('/api/')) {
+                        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+                    }
+                });
+            `;
+            const blob = new Blob([swCode], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+        });
+    }
+
+    // --- ২। মোবাইল ব্যাক বাটন (Popstate) সুরক্ষা যাতে ওয়েবসাইট থেকে বের না হয় ---
+    window.addEventListener('popstate', (e) => {
+        let isClosed = false;
+        
+        // হিস্ট্রি মডাল বন্ধ করা
+        const hModal = document.getElementById('historyModal');
+        if (hModal && !hModal.classList.contains('hidden')) {
+            hModal.classList.add('hidden');
+            isClosed = true;
+        }
+
+        // নোটিশ ভাড়াটিয়া মডাল বন্ধ করা
+        const nModal = document.getElementById('noticeTenantModal');
+        if (nModal && !nModal.classList.contains('hidden')) {
+            nModal.classList.add('hidden');
+            isClosed = true;
+        }
+
+        // ইনভয়েস ভিউ বন্ধ করা
+        const invView = document.getElementById('directInvoiceView');
+        if (invView && !invView.classList.contains('hidden')) {
+            invView.classList.add('hidden');
+            invView.classList.remove('flex');
+            const uView = document.getElementById('userView');
+            if (localStorage.getItem('userRole') === 'user' && uView) {
+                uView.classList.remove('hidden');
+                uView.classList.add('flex');
+            }
+            isClosed = true;
+        }
+
+        // লগইন সাব-ফর্ম থেকে ব্যাক
+        const aForm = document.getElementById('adminLoginForm');
+        const mForm = document.getElementById('managerLoginForm');
+        const uForm = document.getElementById('userLoginForm');
+        if ((aForm && !aForm.classList.contains('hidden')) || 
+            (mForm && !mForm.classList.contains('hidden')) || 
+            (uForm && !uForm.classList.contains('hidden'))) {
+            showLogin('choice');
+            isClosed = true;
+        }
+    });
+
     function toBanglaWord(n) { 
         return String(n).replace(/\d/g, d => ['০','১','২','৩','৪','৫','৬','৭','৮','৯'][d]); 
     }
     function toEngDigits(str) { return String(str).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d)); }
     
     function formatDate(dateStr) {
-        if(!dateStr || dateStr === "") return "-";
+        if(!dateStr || dateStr === "" || dateStr === "-") return "-";
         try { 
             const d = new Date(dateStr); 
             if (isNaN(d.getTime())) return dateStr;
@@ -503,6 +576,9 @@
         loadLocalCache();
         autoSetInvoiceMonthYear();
 
+        // ব্যাকগ্রাউন্ডে আগেই ডাটা ফেচ শুরু করে ক্যাশ প্রস্তুত রাখা (Zero-Delay)
+        fetchData(false);
+
         const params = new URLSearchParams(window.location.search);
         const tIdParam = params.get('t');
         const monthParam = params.get('m');
@@ -542,7 +618,6 @@
                 let rentIdx = 4, elecIdx = 5, waterIdx = 6, srvIdx = 7, advIdx = 8, dueIdx = 9, totalIdx = 10;
                 if(!String(inv[0]).startsWith('INV-')) { rentIdx=3; elecIdx=4; waterIdx=5; srvIdx=6; advIdx=7; dueIdx=8; totalIdx=9; }
                 renderBeautifulInvoice(inv, user, 'directInvoiceContainer', rentIdx, elecIdx, waterIdx, srvIdx, advIdx, dueIdx, totalIdx);
-                // Background refresh without blocking user
                 fetchData(true);
             } else {
                 document.getElementById('loadingText').classList.remove('hidden');
@@ -608,6 +683,7 @@
     };
 
     function showLogin(type) {
+        history.pushState({ view: 'loginForm' }, "");
         document.getElementById('choiceBox').classList.add('hidden'); 
         document.getElementById('adminLoginForm').classList.add('hidden');
         document.getElementById('managerLoginForm').classList.add('hidden'); 
@@ -628,7 +704,7 @@
         submitBtn.disabled = true;
 
         try {
-            // Vercel Serverless Function এর মাধ্যমে নিরাপদ পিন যাচাই
+            // Vercel Serverless Function এর মাধ্যমে দ্রুত পিন যাচাই
             const res = await fetch(`${SCRIPT_URL}?action=checkLogin&role=${role}&pass=${encodeURIComponent(inputPin)}`);
             if(res.ok) {
                 currentRole = role; 
@@ -639,10 +715,12 @@
                 document.getElementById('mainContent').classList.remove('hidden');
                 applyRoleRestrictions(); 
                 
-                // লোকাল ক্যাশ থেকে তাৎক্ষণিক রেন্ডারিং (Zero UI Lag)
+                // ০ মিলিসেকেন্ডে ক্যাশ থেকে তাৎক্ষণিক রেন্ডার
                 if(allTenants.length > 0) {
                     renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); renderNotices();
                 }
+                
+                // ব্যাকগ্রাউন্ডে গুগল শিটের লেটেস্ট ডাটা রিফ্রেশ (কোনো লোডিং স্পিনার ছাড়াই)
                 fetchData(true);
             } else {
                 alert("ভুল পিন!");
@@ -765,18 +843,30 @@
 
     function handleFlatSelection(flat) { showFlatStatusInForm(flat); renderTenantsByFlat(flat); }
     
+    // --- ৩। ভাড়াটিয়া তালিকায় বর্তমান ও প্রাক্তন ভাড়াটিয়াদের সময়কালসহ পুঙ্খানুপুঙ্খ বিবরণ ---
     function renderTenantsByFlat(flat) {
         const listDiv = document.getElementById('allTenantList'); const header = document.getElementById('listHeader');
         if(!flat) { listDiv.innerHTML = 'ফ্ল্যাট সিলেক্ট করলে তালিকা দেখা যাবে'; header.innerText = "ভাড়াটিয়া তালিকা ও কন্ট্রোল"; return; }
-        const filtered = allTenants.filter(t => t[2] === flat); header.innerText = `ফ্ল্যাট ${flat} এর তালিকা`;
+        const filtered = allTenants.filter(t => t[2] === flat && String(t[0]).trim() !== 'ID'); 
+        header.innerText = `ফ্ল্যাট ${flat} এর ভাড়াটিয়া ও ইতিহাসের তালিকা`;
         if(filtered.length === 0) { listDiv.innerHTML = 'এই ফ্ল্যাটে কোনো ডাটা নেই'; return; }
+        
         let html = '';
         filtered.slice(0).reverse().forEach(t => {
-            html += `<div class="flex flex-col sm:flex-row justify-between sm:items-center border-b p-3 hover:bg-gray-50 gap-3 sm:gap-0">
-                <div><span class="font-bold ${t[7]==='Active'?'text-green-600':'text-slate-500'}">${t[1]}</span> <span class="text-[10px] ml-2 px-2 py-0.5 rounded ${t[7]==='Active'?'bg-green-100 text-green-700':'bg-slate-100 text-slate-500'}">${t[7]}</span><p class="text-xs text-slate-400 mt-1">${toBanglaWord(t[3])} | জয়েন: ${formatDate(t[5])}</p></div>
+            const isAct = (t[7] === 'Active');
+            const durationText = isAct 
+                ? `যোগদান: ${formatDate(t[5])} হতে বর্তমান পর্যন্ত` 
+                : `মেয়াদ: ${formatDate(t[5])} হতে ${formatDate(t[6])} পর্যন্ত`;
+
+            html += `<div class="flex flex-col sm:flex-row justify-between sm:items-center border-b p-3 hover:bg-gray-50 gap-3 sm:gap-0 rounded-xl transition">
+                <div>
+                    <span class="font-bold ${isAct ? 'text-green-600' : 'text-slate-600'}">${t[1]}</span> 
+                    <span class="text-[10px] ml-2 px-2 py-0.5 rounded font-bold ${isAct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${isAct ? 'বর্তমান ভাড়াটিয়া' : 'প্রাক্তন ভাড়াটিয়া'}</span>
+                    <p class="text-xs text-slate-500 mt-1"><i class="fas fa-phone-alt mr-1 text-slate-400"></i>${toBanglaWord(t[3])} | <i class="far fa-calendar-alt mr-1 text-slate-400"></i>${durationText}</p>
+                </div>
                 <div class="flex gap-4 justify-end sm:justify-start admin-only">
-                    <button onclick="editTenant('${t[0]}')" class="text-blue-500 bg-blue-50 px-3 py-1 rounded text-sm"><i class="fas fa-edit"></i></button>
-                    <button onclick="deleteTenant('${t[0]}')" class="text-red-500 bg-red-50 px-3 py-1 rounded text-sm"><i class="fas fa-trash-alt"></i></button>
+                    <button onclick="editTenant('${t[0]}')" class="text-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded text-sm transition" title="এডিট"><i class="fas fa-edit"></i></button>
+                    <button onclick="deleteTenant('${t[0]}')" class="text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1 rounded text-sm transition" title="ডিলিট"><i class="fas fa-trash-alt"></i></button>
                 </div></div>`;
         });
         listDiv.innerHTML = html; applyRoleRestrictions();
@@ -839,7 +929,7 @@
     
     function showFlatStatusInForm(flat) { 
         if(!flat) { document.getElementById('formFlatStatus').classList.add('hidden'); return; } 
-        const hist = allTenants.filter(t => t[2] === flat); 
+        const hist = allTenants.filter(t => t[2] === flat && String(t[0]).trim() !== 'ID'); 
         const current = hist.find(t => t[7] === 'Active'); 
         let html = `<b>ফ্ল্যাট ${flat} এর অবস্থা:</b><br>`; 
         html += current ? `<span class="text-red-600 block mt-1">ভাড়া আছেন: ${current[1]}</span>` : `<span class="text-green-600 block mt-1">বর্তমানে ফ্ল্যাটটি খালি আছে।</span>`; 
@@ -847,14 +937,39 @@
         document.getElementById('formFlatStatus').classList.remove('hidden'); 
     }
 
+    // --- ফ্ল্যাট হিস্ট্রি ওপেন (প্রাক্তন ও বর্তমান সবার পূর্ণ বিবরণ ও হিস্ট্রি পুশ) ---
     function showFlatHistory(flat) { 
-        const hist = allTenants.filter(t => t[2] === flat); 
-        document.getElementById('histTitle').innerText = `ফ্ল্যাট ${flat} এর ইতিহাস`; 
+        history.pushState({ modal: 'historyModal' }, "");
+        const hist = allTenants.filter(t => t[2] === flat && String(t[0]).trim() !== 'ID'); 
+        document.getElementById('histTitle').innerHTML = `<i class="fas fa-history mr-2 text-blue-600"></i>ফ্ল্যাট ${flat} এর ইতিহাস`; 
         let html = ''; 
-        [...hist].reverse().forEach(t => { 
-            html += `<div class="bg-slate-50 p-3 rounded-lg border hist-item"><p class="font-bold text-slate-700">${t[1]}</p><div class="flex justify-between text-xs text-slate-500 mt-1"><span>যোগদান: ${formatDate(t[5])}</span><span>বিদায়: ${formatDate(t[6])}</span></div><p class="text-xs mt-1">অবস্থা: <span class="${t[7]=='Active'?'text-green-600':'text-red-500'} font-bold">${t[7]}</span></p></div>`; 
-        }); 
-        document.getElementById('histContent').innerHTML = html || "<div class='text-center text-slate-400 py-4'>কোন ইতিহাস পাওয়া যায়নি।</div>"; 
+        
+        if (hist.length > 0) {
+            [...hist].reverse().forEach(t => { 
+                const isAct = (t[7] === 'Active');
+                const duration = isAct 
+                    ? `যোগদান: <b>${formatDate(t[5])}</b> হতে <b>বর্তমান</b> পর্যন্ত` 
+                    : `মেয়াদ: <b>${formatDate(t[5])}</b> হতে <b>${formatDate(t[6])}</b> পর্যন্ত`;
+
+                html += `
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 hist-item hover:border-blue-300 transition">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <b class="text-base text-slate-800">${t[1]}</b>
+                            <p class="text-xs text-slate-500 mt-0.5"><i class="fas fa-phone-alt mr-1 text-slate-400"></i>${toBanglaWord(t[3])}</p>
+                        </div>
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded ${isAct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}">
+                            ${isAct ? 'বর্তমান ভাড়াটিয়া' : 'প্রাক্তন ভাড়াটিয়া'}
+                        </span>
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-slate-200/60 text-xs text-slate-600 flex items-center justify-between">
+                        <span><i class="far fa-calendar-check mr-1.5 text-blue-500"></i>${duration}</span>
+                    </div>
+                </div>`; 
+            }); 
+        }
+
+        document.getElementById('histContent').innerHTML = html || "<div class='text-center text-slate-400 py-6'>কোন ইতিহাস পাওয়া যায়নি।</div>"; 
         document.getElementById('historyModal').classList.remove('hidden'); 
     }
 
@@ -865,15 +980,24 @@
         }); 
     }
 
-    function closeModal() { document.getElementById('historyModal').classList.add('hidden'); }
+    function closeModal() { 
+        document.getElementById('historyModal').classList.add('hidden'); 
+        if (history.state && history.state.modal === 'historyModal') history.back();
+    }
 
+    // --- ড্যাশবোর্ডে সম্পূর্ণ ফ্ল্যাট কার্ড ক্লিকেবল করা যাতে চাপ দিলেই হিস্ট্রি দেখা যায় ---
     function renderDashboard() {
         let html = ''; let activeCount = 0;
         FLATS_LIST.forEach(f => {
-            const t = allTenants.find(t => t[2] == f && t[7] == 'Active'); if(t) activeCount++;
-            html += `<div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border-t-4 ${t?'border-green-500':'border-slate-200'}">
-                <div class="flex justify-between items-center"><h4 class="font-bold text-base md:text-lg">${f}</h4><button onclick="showFlatHistory('${f}')" class="text-sm text-blue-400 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition"><i class="fas fa-history"></i></button></div>
-                <p class="text-slate-500 font-medium text-xs md:text-sm mt-2">${t ? t[1] : 'ফাঁকা'}</p></div>`;
+            const t = allTenants.find(t => t[2] == f && t[7] == 'Active' && String(t[0]).trim() !== 'ID'); 
+            if(t) activeCount++;
+            html += `<div onclick="showFlatHistory('${f}')" class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border-t-4 cursor-pointer hover:shadow-md hover:border-blue-400 transition ${t?'border-green-500':'border-slate-200'}">
+                <div class="flex justify-between items-center">
+                    <h4 class="font-bold text-base md:text-lg text-slate-800">${f}</h4>
+                    <button onclick="event.stopPropagation(); showFlatHistory('${f}')" class="text-sm text-blue-500 bg-blue-50 hover:bg-blue-100 p-1.5 px-2 rounded-lg transition" title="ইতিহাস দেখুন"><i class="fas fa-history"></i></button>
+                </div>
+                <p class="text-slate-500 font-medium text-xs md:text-sm mt-2">${t ? `<span class="text-green-600 font-semibold"><i class="fas fa-user-check mr-1"></i>${t[1]}</span>` : '<span class="text-slate-400">ফাঁকা</span>'}</p>
+            </div>`;
         });
         document.getElementById('flatGrid').innerHTML = html;
         document.getElementById('dashCounter').innerHTML = `<div class="bg-blue-100 text-blue-700 px-3 md:px-4 py-2 rounded-lg font-bold">মোট: <span class="bn-num">${toBanglaWord(FLATS_LIST.length)}</span></div><div class="bg-green-100 text-green-700 px-3 md:px-4 py-2 rounded-lg font-bold">ভাড়া: <span class="bn-num">${toBanglaWord(activeCount)}</span></div><div class="bg-slate-100 text-slate-700 px-3 md:px-4 py-2 rounded-lg font-bold">খালি: <span class="bn-num">${toBanglaWord(FLATS_LIST.length - activeCount)}</span></div>`;
@@ -1219,12 +1343,10 @@
 
     async function deleteNotice(id) {
         if(confirm("আপনি কি এই নোটিশটি সম্পূর্ণ ডিলিট করতে চান?")) {
-            // ১. তৎক্ষণাৎ লোকাল তালিকা থেকে মুছে ফেলা (Instant UI Delete)
             allNotices = allNotices.filter(n => String(n[0]) !== String(id));
             renderNotices();
             updateLocalCache();
 
-            // ২. ব্যাকগ্রাউন্ডে সার্ভারে ডিলিট রিকোয়েস্ট
             try {
                 await fetch(SCRIPT_URL, {
                     method: "POST",
@@ -1278,6 +1400,7 @@
     }
 
     function openNoticeTenantModal(id) {
+        history.pushState({ modal: 'noticeTenantModal' }, "");
         const n = allNotices.find(x => x[0] == id);
         if(!n) return alert("নোটিশ পাওয়া যায়নি!");
         
@@ -1313,6 +1436,7 @@
 
     function closeNoticeTenantModal() {
         document.getElementById('noticeTenantModal').classList.add('hidden');
+        if (history.state && history.state.modal === 'noticeTenantModal') history.back();
     }
 
     function renderNotices() {
@@ -1386,6 +1510,7 @@
     }
 
     function showUserInvoiceModal(inv, user) {
+        history.pushState({ modal: 'directInvoiceView' }, "");
         document.getElementById('authOverlay').classList.add('hidden');
         document.getElementById('userView').classList.add('hidden');
         document.getElementById('directInvoiceView').classList.remove('hidden');
@@ -1397,12 +1522,14 @@
 
     function closeInvoiceView() {
         const params = new URLSearchParams(window.location.search);
-        if(params.get('t')) { logout(); } 
-        else {
+        if(params.get('t')) { 
+            logout(); 
+        } else {
             document.getElementById('directInvoiceView').classList.add('hidden');
             document.getElementById('directInvoiceView').classList.remove('flex');
             document.getElementById('userView').classList.remove('hidden');
             document.getElementById('userView').classList.add('flex');
+            if (history.state && history.state.modal === 'directInvoiceView') history.back();
         }
     }
 
