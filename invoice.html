@@ -145,6 +145,7 @@
         <button onclick="switchTab('expense')" id="tab-expense" class="nav-btn min-w-max md:w-full flex items-center p-2 md:p-3 rounded-lg text-sm md:text-base"><i class="fas fa-wallet mr-2 md:mr-3"></i> অন্যান্য খরচ</button>
         <button onclick="switchTab('bank')" id="tab-bank" class="nav-btn min-w-max md:w-full flex items-center p-2 md:p-3 rounded-lg text-sm md:text-base"><i class="fas fa-university mr-2 md:mr-3"></i> ব্যাংকে জমা</button>
         <button onclick="switchTab('report')" id="tab-report" class="nav-btn min-w-max md:w-full flex items-center p-2 md:p-3 rounded-lg text-sm md:text-base"><i class="fas fa-chart-line mr-2 md:mr-3"></i> রিপোর্ট</button>
+        <button onclick="switchTab('notice')" id="tab-notice" class="nav-btn min-w-max md:w-full flex items-center p-2 md:p-3 rounded-lg text-sm md:text-base admin-only-tab"><i class="fas fa-bullhorn mr-2 md:mr-3"></i> নোটিশ/মেসেজ</button>
     </nav>
     <div class="hidden md:block p-6 border-t border-slate-700">
         <button onclick="logout()" class="w-full text-red-400 p-3 hover:bg-slate-800 rounded-lg transition text-left font-bold"><i class="fas fa-sign-out-alt mr-3"></i> লগআউট করুন</button>
@@ -319,6 +320,21 @@
             </div>
         </div>
     </section>
+    
+    <section id="noticeSec" class="page-content hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 admin-only">
+            <div class="bg-white p-5 md:p-8 rounded-2xl shadow-lg border col-span-1 h-max">
+                <h2 class="text-lg md:text-xl font-bold mb-6 text-purple-600">নতুন নোটিশ পাঠান</h2>
+                <textarea id="noticeMsg" placeholder="নোটিশ বা উৎসবের বার্তা লিখুন..." class="w-full p-3 border mb-3 rounded-xl bg-purple-50 h-32"></textarea>
+                <button onclick="sendBulkNotice()" class="w-full bg-purple-600 text-white py-3 md:py-4 rounded-xl font-bold shadow-lg hover:bg-purple-700 transition">সবার হোয়াটসঅ্যাপে পাঠান</button>
+                <p class="text-[10px] text-slate-500 mt-3 text-center bg-slate-50 p-2 rounded border">সতর্কতা: সবার হোয়াটসঅ্যাপ ওপেন হতে একাধিক ট্যাব খুলবে, তাই ব্রাউজারে **Pop-up** Allow করতে হতে পারে।</p>
+            </div>
+            <div class="col-span-1 lg:col-span-2">
+                <h3 class="font-bold text-lg mb-4 border-b pb-2">পূর্বের নোটিশ সমূহ</h3>
+                <div id="noticeList" class="space-y-3"></div>
+            </div>
+        </div>
+    </section>
 
     <section id="reportSec" class="page-content hidden">
         <div id="headSummary" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6 md:mb-8 text-sm"></div>
@@ -358,7 +374,7 @@
     const NAGAD_NO = "01711235481";
     const BANK_INFO = "- ব্যাংক, এ/সি: -, নাম: স্বপ্নবিলাস";
     
-    let allTenants = [], allInvoices = [], allLoans = [], allExpenses = [], allBanks = [];
+    let allTenants = [], allInvoices = [], allLoans = [], allExpenses = [], allBanks = [], allNotices = [];
     let currentRole = ""; 
     const FLATS_LIST = ["A-1", "A-2", "A-3", "A-4", "B-1", "B-2", "B-3", "B-4", "C-1", "C-2", "C-3", "D-1", "D-2", "G-1"];
     const BN_MONTHS = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
@@ -442,6 +458,7 @@
             allLoans = JSON.parse(localStorage.getItem('cache_loans') || "[]");
             allExpenses = JSON.parse(localStorage.getItem('cache_expenses') || "[]");
             allBanks = JSON.parse(localStorage.getItem('cache_banks') || "[]");
+            allNotices = JSON.parse(localStorage.getItem('cache_notices') || "[]");
         } catch(e) { console.error("Cache load error", e); }
     }
 
@@ -536,7 +553,7 @@
                 document.getElementById('mainContent').classList.remove('hidden');
                 applyRoleRestrictions();
                 if(allTenants.length > 0) {
-                    renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); 
+                    renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); renderNotices();
                 }
                 fetchData(true);
             } else if (savedRole === 'user') {
@@ -577,7 +594,7 @@
             applyRoleRestrictions(); 
             
             if(allTenants.length > 0) {
-                renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks();
+                renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); renderNotices();
             }
             fetchData(true);
         } else alert("ভুল পিন!");
@@ -625,7 +642,7 @@
             if (!force && localStorage.getItem('cache_time') && (now - localStorage.getItem('cache_time') < cacheTime)) {
                 loadLocalCache();
                 if(role && role !== 'user') { 
-                    renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); 
+                    renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); renderNotices();
                 }
                 return;
             }
@@ -638,18 +655,20 @@
                 allTenants = resT || [];
                 allInvoices = resI || [];
             } else {
-                const [resT, resI, resL, resE, resB] = await Promise.all([
+                const [resT, resI, resL, resE, resB, resN] = await Promise.all([
                     fetch(SCRIPT_URL + "?action=getTenants" + cacheBuster).then(r=>r.json()).catch(()=>[]),
                     fetch(SCRIPT_URL + "?action=getInvoices" + cacheBuster).then(r=>r.json()).catch(()=>[]),
                     fetch(SCRIPT_URL + "?action=getLoans" + cacheBuster).then(r=>r.json()).catch(()=>[]),
                     fetch(SCRIPT_URL + "?action=getExpenses" + cacheBuster).then(r=>r.json()).catch(()=>[]),
-                    fetch(SCRIPT_URL + "?action=getBanks" + cacheBuster).then(r=>r.json()).catch(()=>[])
+                    fetch(SCRIPT_URL + "?action=getBanks" + cacheBuster).then(r=>r.json()).catch(()=>[]),
+                    fetch(SCRIPT_URL + "?action=getNotices" + cacheBuster).then(r=>r.json()).catch(()=>[])
                 ]);
                 allTenants = resT || [];
                 allInvoices = resI || [];
                 allLoans = resL || [];
                 allExpenses = resE || [];
                 allBanks = resB || [];
+                allNotices = resN || [];
             }
 
             localStorage.setItem('cache_tenants', JSON.stringify(allTenants));
@@ -657,10 +676,11 @@
             localStorage.setItem('cache_loans', JSON.stringify(allLoans));
             localStorage.setItem('cache_expenses', JSON.stringify(allExpenses));
             localStorage.setItem('cache_banks', JSON.stringify(allBanks));
+            localStorage.setItem('cache_notices', JSON.stringify(allNotices));
             localStorage.setItem('cache_time', now);
 
             if(role && role !== 'user') { 
-                renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); 
+                renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); renderNotices();
             } else if(role === 'user') {
                 const uData = JSON.parse(localStorage.getItem('userData'));
                 if(uData) renderUserInvoices(uData);
@@ -1083,6 +1103,62 @@
         document.getElementById('bankList').innerHTML = html; applyRoleRestrictions();
     }
 
+    async function sendBulkNotice() {
+        const msg = document.getElementById('noticeMsg').value.trim();
+        if(!msg) return alert("দয়া করে নোটিশ বা মেসেজ লিখুন!");
+        
+        const activeTenants = allTenants.filter(t => t[7] === 'Active');
+        if(activeTenants.length === 0) return alert("বর্তমানে কোনো এক্টিভ ভাড়াটিয়া নেই!");
+
+        const noticeId = "N-" + Date.now();
+        const dateStr = new Date().toISOString();
+        
+        await fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify({
+                action: "saveNotice",
+                id: noticeId,
+                message: msg,
+                date: dateStr
+            })
+        });
+
+        alert("নোটিশ সেভ হয়েছে! এখন সবার হোয়াটসঅ্যাপে পাঠানো হচ্ছে...");
+
+        activeTenants.forEach((t, index) => {
+            let ph = String(t[3]).trim().replace(/[^0-9]/g, '');
+            if(ph.length === 11 && ph.startsWith('01')) ph = '88' + ph;
+            let personalizedMsg = `আসসালামু আলাইকুম প্রিয় ${t[1]},\n\n${msg}`;
+            
+            setTimeout(() => {
+                window.open(`https://wa.me/${ph}?text=${encodeURIComponent(personalizedMsg)}`, '_blank');
+            }, index * 800);
+        });
+
+        document.getElementById('noticeMsg').value = '';
+        fetchData(true);
+    }
+
+    function renderNotices() {
+        const list = document.getElementById('noticeList');
+        if(!list) return;
+        if(allNotices.length < 2) { list.innerHTML = "<p class='text-slate-400'>কোনো নোটিশ পাওয়া যায়নি।</p>"; return; }
+        
+        let html = '';
+        allNotices.slice(1).reverse().forEach(n => {
+            html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-purple-100">
+                <p class="text-xs text-slate-500 mb-2"><i class="far fa-calendar-alt mr-1"></i> ${formatDate(n[2])}</p>
+                <p class="text-sm text-slate-800 whitespace-pre-wrap">${n[1]}</p>
+            </div>`;
+        });
+        list.innerHTML = html; applyRoleRestrictions();
+    }
+
+    function resetNoticeForm() {
+        let n = document.getElementById('noticeMsg');
+        if(n) n.value = '';
+    }
+
     function renderReportTable() {
         if(allInvoices.length < 2) return;
         let html = `<table class="w-full text-left border-collapse min-w-[650px]"><thead class="sticky top-0"><tr class="bg-slate-800 text-white text-[11px] md:text-xs"><th class="p-2 border">নাম/ফ্ল্যাট</th><th class="p-2 border">মাস</th><th class="p-2 border text-right">ভাড়া</th><th class="p-2 border text-right">বিদ্যুৎ</th><th class="p-2 border text-right">পানি</th><th class="p-2 border text-right">সার্ভিস</th><th class="p-2 border text-right">বকেয়া</th><th class="p-2 border text-right font-bold">মোট</th><th class="p-2 border text-center admin-only">অ্যাকশন</th></tr></thead><tbody>`;
@@ -1272,6 +1348,10 @@
         if(tab === 'invoice' && !isEditingInvoice) {
             resetInvoiceForm();
             autoSetInvoiceMonthYear();
+        }
+
+        if(tab !== 'notice') {
+            resetNoticeForm();
         }
     }
 
