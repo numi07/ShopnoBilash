@@ -1,3 +1,8 @@
+// ইন-মেমোরি ক্যাশ ভ্যারিয়েবল (Vercel Serverless Instance-এ ডাটা দ্রুত রাখার জন্য)
+let cachedFullData = null;
+let lastCacheTime = 0;
+const CACHE_DURATION = 15 * 1000; // ১৫ সেকেন্ড ক্যাশ থাকবে
+
 export default async function handler(req, res) {
     const scriptURL = process.env.INVOICE_GAS_SCRIPT_URL;
     const adminPass = process.env.INVOICE_ADMIN_PASSWORD;
@@ -29,7 +34,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
         const { action, pass, role } = req.query;
 
-        // অ্যাডমিন এবং ম্যানেজার পিন যাচাইকরণ
+        // পিন যাচাইকরণ (Admin & Manager)
         if (action === 'checkLogin') {
             if (role === 'manager') {
                 if (pass === managerPass) return res.status(200).json({ success: true, role: 'manager' });
@@ -40,19 +45,33 @@ export default async function handler(req, res) {
         }
 
         try {
-            // Vercel Global Edge Cache সক্রিয় করা হলো (সুপার ফাস্ট ৫ সেকেন্ড ক্যাশ + ব্যাকগ্রাউন্ড রিভ্যালিডেশন)
-            res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=30');
-
+            const now = Date.now();
             const queryAction = action ? action : 'getData';
-            const response = await fetch(`${scriptURL}?action=${queryAction}&_t=${Date.now()}`);
+
+            // ইন-মেমোরি ক্যাশ থাকলে গুগল শিটে না গিয়ে ২০ মিলি-সেকেন্ডে রেসপন্স দিবে
+            if (queryAction === 'getData' && cachedFullData && (now - lastCacheTime < CACHE_DURATION)) {
+                res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=30');
+                return res.status(200).json(cachedFullData);
+            }
+
+            res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=30');
+            const response = await fetch(`${scriptURL}?action=${queryAction}&_t=${now}`);
             const data = await response.json();
+
+            if (queryAction === 'getData') {
+                cachedFullData = data;
+                lastCacheTime = now;
+            }
+
             return res.status(200).json(data);
         } catch (error) {
+            // এরর হলেও পুরানো ক্যাশ ডাটা থাকলে রিটার্ন করবে (Fail-safe)
+            if (cachedFullData) return res.status(200).json(cachedFullData);
             return res.status(500).json({ error: "Fetch failed from Google Apps Script" });
         }
     }
     
-    // POST Request (ডাটা সংরক্ষণ, এডিট ও ডিলিট)
+    // POST Request (ডাটা সংরক্ষণ বা পরিবর্তনের সময় ক্যাশ ইনভ্যালিডেট করা হবে)
     if (req.method === 'POST') {
         try {
             const payload = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
@@ -63,6 +82,11 @@ export default async function handler(req, res) {
                 headers: { 'Content-Type': 'application/json' }
             });
             const data = await response.json();
+
+            // নতুন ডাটা সেভ হলে মেমোরি ক্যাশ ক্লিয়ার করা হলো যাতে সাথে সাথে ফ্রেশ ডাটা আসে
+            cachedFullData = null;
+            lastCacheTime = 0;
+
             return res.status(200).json(data);
         } catch (error) {
             return res.status(500).json({ error: "Operation failed in Google Apps Script" });
