@@ -95,14 +95,14 @@
     <div id="adminLoginForm" class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md hidden text-center">
         <h2 class="text-xl sm:text-2xl font-bold mb-6">অ্যাডমিন পিন দিন</h2>
         <input type="password" id="adminPin" onkeyup="if(event.key==='Enter') authLogin('admin')" class="w-full p-3 sm:p-4 border rounded-xl mb-4 text-center text-xl sm:text-2xl outline-none">
-        <button onclick="authLogin('admin')" class="w-full bg-blue-600 text-white py-3 sm:py-4 rounded-xl font-bold">প্রবেশ</button>
+        <button onclick="authLogin('admin')" id="adminLoginBtn" class="w-full bg-blue-600 text-white py-3 sm:py-4 rounded-xl font-bold">প্রবেশ</button>
         <button onclick="showLogin('choice')" class="mt-4 text-sm text-slate-500">পিছনে যান</button>
     </div>
     
     <div id="managerLoginForm" class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md hidden text-center">
         <h2 class="text-xl sm:text-2xl font-bold mb-6 text-orange-600">ব্যবস্থাপক পিন দিন</h2>
         <input type="password" id="managerPin" onkeyup="if(event.key==='Enter') authLogin('manager')" class="w-full p-3 sm:p-4 border rounded-xl mb-4 text-center text-xl sm:text-2xl outline-none border-orange-200 focus:border-orange-500">
-        <button onclick="authLogin('manager')" class="w-full bg-orange-500 text-white py-3 sm:py-4 rounded-xl font-bold">প্রবেশ (View Only)</button>
+        <button onclick="authLogin('manager')" id="managerLoginBtn" class="w-full bg-orange-500 text-white py-3 sm:py-4 rounded-xl font-bold">প্রবেশ (View Only)</button>
         <button onclick="showLogin('choice')" class="mt-4 text-sm text-slate-500">পিছনে যান</button>
     </div>
     
@@ -392,13 +392,8 @@
 </div>
 
 <script>
-    // Vercel Serverless API লিংক (সরাসরি GAS অথবা Vercel API উভয়ই কাজ করবে)
-    const SCRIPT_URL = window.location.hostname === "localhost" || window.location.hostname.includes("shopnobilash") || window.location.hostname.includes("vercel.app") 
-        ? "/api/invoice" 
-        : "https://script.google.com/macros/s/AKfycbwDPN0qmG50yQqnERQpoZGxz2L05JCDKd4QKuYDisWCWvM-sy1eAfv87FJ0IjyuDCrojA/exec";
-    
-    const _aPin = "U2hvcG5vQDIwMjRA";
-    const _mPin = "TWFuYWdlckAyMDI0QA==";
+    // Vercel Serverless API Proxy (Google Apps Script URL কোডে থাকবে না, সম্পূর্ণ সুরক্ষিত)
+    const SCRIPT_URL = "/api/invoice";
     
     const BKASH_NO = "01711235481";
     const NAGAD_NO = "01711235481";
@@ -624,27 +619,45 @@
     }
 
     async function authLogin(role) {
-        let inputPin = role === 'admin' ? document.getElementById('adminPin').value : document.getElementById('managerPin').value;
-        let targetPin = role === 'admin' ? _aPin : _mPin;
-        if(btoa(inputPin) === targetPin) {
-            currentRole = role; 
-            localStorage.setItem('userRole', role);
-            updateLastActive();
-            document.getElementById('authOverlay').classList.add('hidden');
-            document.getElementById('adminSidebar').classList.remove('hidden'); 
-            document.getElementById('mainContent').classList.remove('hidden');
-            applyRoleRestrictions(); 
-            
-            if(allTenants.length > 0) {
-                renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); renderNotices();
+        let inputPin = role === 'admin' ? document.getElementById('adminPin').value.trim() : document.getElementById('managerPin').value.trim();
+        let submitBtn = role === 'admin' ? document.getElementById('adminLoginBtn') : document.getElementById('managerLoginBtn');
+        if(!inputPin) return alert("দয়া করে পিন দিন!");
+
+        const prevBtnText = submitBtn.innerText;
+        submitBtn.innerText = "যাচাই হচ্ছে...";
+        submitBtn.disabled = true;
+
+        try {
+            // Vercel Serverless Function এর মাধ্যমে নিরাপদ পিন যাচাই
+            const res = await fetch(`${SCRIPT_URL}?action=checkLogin&role=${role}&pass=${encodeURIComponent(inputPin)}`);
+            if(res.ok) {
+                currentRole = role; 
+                localStorage.setItem('userRole', role);
+                updateLastActive();
+                document.getElementById('authOverlay').classList.add('hidden');
+                document.getElementById('adminSidebar').classList.remove('hidden'); 
+                document.getElementById('mainContent').classList.remove('hidden');
+                applyRoleRestrictions(); 
+                
+                // লোকাল ক্যাশ থেকে তাৎক্ষণিক রেন্ডারিং (Zero UI Lag)
+                if(allTenants.length > 0) {
+                    renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); renderNotices();
+                }
+                fetchData(true);
+            } else {
+                alert("ভুল পিন!");
             }
-            fetchData(true);
-        } else alert("ভুল পিন!");
+        } catch(err) {
+            alert("লগইন সংযোগে সমস্যা হচ্ছে, অনুগ্রহ করে পুনরায় চেষ্টা করুন!");
+        } finally {
+            submitBtn.innerText = prevBtnText;
+            submitBtn.disabled = false;
+        }
     }
 
     async function userLogin() {
-        const ph = document.getElementById('userPhone').value; 
-        const ps = document.getElementById('userPass').value;
+        const ph = document.getElementById('userPhone').value.trim(); 
+        const ps = document.getElementById('userPass').value.trim();
         if(!ph || !ps) return alert("মোবাইল ও পাসওয়ার্ড লিখুন");
         
         let user = allTenants.find(t => t[3] == ph && t[4] == ps);
@@ -700,7 +713,7 @@
                 allBanks = fastRes.banks || [];
                 allNotices = fastRes.notices || [];
             } else {
-                // ফলব্যাক (যদি পুরানো লিংক থেকে আসে)
+                // ফলব্যাক
                 const [resT, resI, resL, resE, resB, resN] = await Promise.all([
                     fetch(SCRIPT_URL + (SCRIPT_URL.includes("?") ? "&" : "?") + "action=getTenants" + cacheBuster).then(r=>r.json()).catch(()=>[]),
                     fetch(SCRIPT_URL + (SCRIPT_URL.includes("?") ? "&" : "?") + "action=getInvoices" + cacheBuster).then(r=>r.json()).catch(()=>[]),
