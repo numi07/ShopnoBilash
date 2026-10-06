@@ -392,7 +392,10 @@
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDPN0qmG50yQqnERQpoZGxz2L05JCDKd4QKuYDisWCWvM-sy1eAfv87FJ0IjyuDCrojA/exec";
+    // Vercel Serverless API লিংক (সরাসরি GAS অথবা Vercel API উভয়ই কাজ করবে)
+    const SCRIPT_URL = window.location.hostname === "localhost" || window.location.hostname.includes("shopnobilash") || window.location.hostname.includes("vercel.app") 
+        ? "/api/invoice" 
+        : "https://script.google.com/macros/s/AKfycbwDPN0qmG50yQqnERQpoZGxz2L05JCDKd4QKuYDisWCWvM-sy1eAfv87FJ0IjyuDCrojA/exec";
     
     const _aPin = "U2hvcG5vQDIwMjRA";
     const _mPin = "TWFuYWdlckAyMDI0QA==";
@@ -487,6 +490,18 @@
             allBanks = JSON.parse(localStorage.getItem('cache_banks') || "[]");
             allNotices = JSON.parse(localStorage.getItem('cache_notices') || "[]");
         } catch(e) { console.error("Cache load error", e); }
+    }
+
+    function updateLocalCache() {
+        try {
+            localStorage.setItem('cache_tenants', JSON.stringify(allTenants));
+            localStorage.setItem('cache_invoices', JSON.stringify(allInvoices));
+            localStorage.setItem('cache_loans', JSON.stringify(allLoans));
+            localStorage.setItem('cache_expenses', JSON.stringify(allExpenses));
+            localStorage.setItem('cache_banks', JSON.stringify(allBanks));
+            localStorage.setItem('cache_notices', JSON.stringify(allNotices));
+            localStorage.setItem('cache_time', Date.now());
+        } catch(e) {}
     }
 
     window.onload = async () => {
@@ -656,13 +671,11 @@
         }
     }
 
+    // সুপার ফাস্ট ডেটা ফেচ (১টি মাত্র রিকোয়েস্টে সব ডেটা আসবে)
     async function fetchData(force = false) {
         try {
             const cacheBuster = "&_=" + new Date().getTime();
-            const params = new URLSearchParams(window.location.search);
-            const isDirectInvoice = params.get('t') && params.get('m') && params.get('y');
             const role = localStorage.getItem('userRole');
-            
             const now = Date.now();
             const cacheTime = 60000;
             
@@ -674,22 +687,27 @@
                 return;
             }
 
-            if (isDirectInvoice || role === 'user') {
-                const [resT, resI] = await Promise.all([
-                    fetch(SCRIPT_URL + "?action=getTenants" + cacheBuster).then(r=>r.json()).catch(()=>[]),
-                    fetch(SCRIPT_URL + "?action=getInvoices" + cacheBuster).then(r=>r.json()).catch(()=>[])
-                ]);
-                allTenants = resT || [];
-                allInvoices = resI || [];
+            // সিঙ্গেল কল রিকোয়েস্ট (action=getData)
+            const fastRes = await fetch(SCRIPT_URL + (SCRIPT_URL.includes("?") ? "&" : "?") + "action=getData" + cacheBuster)
+                .then(r => r.json())
+                .catch(() => null);
+
+            if (fastRes && fastRes.tenants) {
+                allTenants = fastRes.tenants || [];
+                allInvoices = fastRes.invoices || [];
+                allLoans = fastRes.loans || [];
+                allExpenses = fastRes.expenses || [];
+                allBanks = fastRes.banks || [];
+                allNotices = fastRes.notices || [];
             } else {
+                // ফলব্যাক (যদি পুরানো লিংক থেকে আসে)
                 const [resT, resI, resL, resE, resB, resN] = await Promise.all([
-                    fetch(SCRIPT_URL + "?action=getTenants" + cacheBuster).then(r=>r.json()).catch(()=>[]),
-                    fetch(SCRIPT_URL + "?action=getInvoices" + cacheBuster).then(r=>r.json()).catch(()=>[])
-                    ,
-                    fetch(SCRIPT_URL + "?action=getLoans" + cacheBuster).then(r=>r.json()).catch(()=>[]),
-                    fetch(SCRIPT_URL + "?action=getExpenses" + cacheBuster).then(r=>r.json()).catch(()=>[]),
-                    fetch(SCRIPT_URL + "?action=getBanks" + cacheBuster).then(r=>r.json()).catch(()=>[]),
-                    fetch(SCRIPT_URL + "?action=getNotices" + cacheBuster).then(r=>r.json()).catch(()=>[])
+                    fetch(SCRIPT_URL + (SCRIPT_URL.includes("?") ? "&" : "?") + "action=getTenants" + cacheBuster).then(r=>r.json()).catch(()=>[]),
+                    fetch(SCRIPT_URL + (SCRIPT_URL.includes("?") ? "&" : "?") + "action=getInvoices" + cacheBuster).then(r=>r.json()).catch(()=>[]),
+                    fetch(SCRIPT_URL + (SCRIPT_URL.includes("?") ? "&" : "?") + "action=getLoans" + cacheBuster).then(r=>r.json()).catch(()=>[]),
+                    fetch(SCRIPT_URL + (SCRIPT_URL.includes("?") ? "&" : "?") + "action=getExpenses" + cacheBuster).then(r=>r.json()).catch(()=>[]),
+                    fetch(SCRIPT_URL + (SCRIPT_URL.includes("?") ? "&" : "?") + "action=getBanks" + cacheBuster).then(r=>r.json()).catch(()=>[]),
+                    fetch(SCRIPT_URL + (SCRIPT_URL.includes("?") ? "&" : "?") + "action=getNotices" + cacheBuster).then(r=>r.json()).catch(()=>[])
                 ]);
                 allTenants = resT || [];
                 allInvoices = resI || [];
@@ -699,13 +717,7 @@
                 allNotices = resN || [];
             }
 
-            localStorage.setItem('cache_tenants', JSON.stringify(allTenants));
-            localStorage.setItem('cache_invoices', JSON.stringify(allInvoices));
-            localStorage.setItem('cache_loans', JSON.stringify(allLoans));
-            localStorage.setItem('cache_expenses', JSON.stringify(allExpenses));
-            localStorage.setItem('cache_banks', JSON.stringify(allBanks));
-            localStorage.setItem('cache_notices', JSON.stringify(allNotices));
-            localStorage.setItem('cache_time', now);
+            updateLocalCache();
 
             if(role && role !== 'user') { 
                 renderDashboard(); renderInvoiceSelect(); renderReportTable(); renderExpenses(); renderBanks(); renderNotices();
@@ -1131,7 +1143,7 @@
         document.getElementById('bankList').innerHTML = html; applyRoleRestrictions();
     }
 
-    // --- নোটিশ সেকশন (সেভ, এডিট, ডিলিট এবং হোয়াটসঅ্যাপ শেয়ারিং) ---
+    // --- নোটিশ সেকশন (Optimistic UI - ০ মিলি-সেকেন্ডে ফাস্ট আপডেট) ---
     async function saveNotice(sendWhatsApp = false) {
         const msg = document.getElementById('noticeMsg').value.trim();
         if(!msg) return alert("দয়া করে নোটিশ বা মেসেজ লিখুন!");
@@ -1140,24 +1152,45 @@
         const noticeId = existingId || "N-" + Date.now();
         const dateStr = new Date().toISOString();
 
-        await fetch(SCRIPT_URL, {
-            method: "POST",
-            body: JSON.stringify({
-                action: "saveNotice",
-                id: noticeId,
-                message: msg,
-                date: dateStr
-            })
-        });
+        // ১. চোখের পলকে লোকাল মেমোরি আপডেট (Optimistic UI Update)
+        if (allNotices.length === 0) {
+            allNotices.push(["NoticeID", "Message", "Date"]);
+        }
 
-        alert(existingId ? "নোটিশ সফলভাবে আপডেট হয়েছে!" : "নোটিশ সফলভাবে সংরক্ষিত হয়েছে!");
+        if (existingId) {
+            const idx = allNotices.findIndex(n => String(n[0]) === String(existingId));
+            if (idx !== -1) {
+                allNotices[idx] = [existingId, msg, dateStr];
+            } else {
+                allNotices.push([existingId, msg, dateStr]);
+            }
+        } else {
+            allNotices.push([noticeId, msg, dateStr]);
+        }
+
+        // ২. তৎক্ষণাৎ স্ক্রিনে রেন্ডার ও লোকাল স্টোরেজে সংরক্ষণ (Zero Delay)
+        renderNotices();
+        updateLocalCache();
+        resetNoticeForm();
 
         if (sendWhatsApp) {
             broadcastNoticeToAll(msg);
         }
 
-        resetNoticeForm();
-        fetchData(true);
+        // ৩. ব্যাকগ্রাউন্ডে সার্ভারে রিকোয়েস্ট পাঠানো (ইউজারকে আটকে রাখবে না)
+        try {
+            await fetch(SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "saveNotice",
+                    id: noticeId,
+                    message: msg,
+                    date: dateStr
+                })
+            });
+        } catch(e) {
+            console.error("Notice save error in background", e);
+        }
     }
 
     function editNotice(id) {
@@ -1173,12 +1206,20 @@
 
     async function deleteNotice(id) {
         if(confirm("আপনি কি এই নোটিশটি সম্পূর্ণ ডিলিট করতে চান?")) {
-            await fetch(SCRIPT_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: "deleteNotice", id: id })
-            });
-            alert("নোটিশ ডিলিট করা হয়েছে!");
-            fetchData(true);
+            // ১. তৎক্ষণাৎ লোকাল তালিকা থেকে মুছে ফেলা (Instant UI Delete)
+            allNotices = allNotices.filter(n => String(n[0]) !== String(id));
+            renderNotices();
+            updateLocalCache();
+
+            // ২. ব্যাকগ্রাউন্ডে সার্ভারে ডিলিট রিকোয়েস্ট
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "deleteNotice", id: id })
+                });
+            } catch(e) {
+                console.error("Notice delete error in background", e);
+            }
         }
     }
 
