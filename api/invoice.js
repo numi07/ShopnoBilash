@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
     const scriptURL = process.env.INVOICE_GAS_SCRIPT_URL;
-    const adminPass = process.env.INVOICE_ADMIN_PASSWORD || "Shopno@2024@";
-    const managerPass = process.env.INVOICE_MANAGER_PASSWORD || "Manager@2024@";
+    const adminPass = process.env.INVOICE_ADMIN_PASSWORD;
+    const managerPass = process.env.INVOICE_MANAGER_PASSWORD;
     const allowedDomain = "shopnobilash.pro.bd";
 
     // CORS Headers
